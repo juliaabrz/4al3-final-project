@@ -1,4 +1,4 @@
-# 4AL3 Final Project Repository
+# Predicting Diabetes Health Status Using Various Machine Learning Models: A Comprehensive Dataset and Performance Analysis
 
 Welcome to the **4AL3 Final Project Repository**! This repository contains all the important data and files required for the project.
 
