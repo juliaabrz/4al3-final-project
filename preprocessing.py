@@ -18,10 +18,6 @@ numerical_columns = ['BMI', 'MentHlth', 'PhysHlth', 'Age', 'Income' , 'Education
 scaler = MinMaxScaler()
 X[numerical_columns] = scaler.fit_transform(X[numerical_columns])
 
-# Handle class imbalance using SMOTE
-smote = SMOTE(random_state=42)
-X_resampled, y_resampled = smote.fit_resample(X, y)
-
 # Split the data into training and testing sets (80/20 split)
 X_train, X_test, y_train, y_test = train_test_split(
     X_resampled, y_resampled, test_size=0.2, random_state=42
