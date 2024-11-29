@@ -14,7 +14,7 @@ X = data.drop(columns=[target])
 y = data[target]
 
 # Normalize numerical features using Min-Max Scaling
-numerical_columns = ['BMI', 'MentHlth', 'PhysHlth', 'Age']  # Columns identified from the dataset
+numerical_columns = ['BMI', 'MentHlth', 'PhysHlth', 'Age', 'Income' , 'Education', 'GenHealth' ] 
 scaler = MinMaxScaler()
 X[numerical_columns] = scaler.fit_transform(X[numerical_columns])
 
