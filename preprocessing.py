@@ -1,7 +1,6 @@
 # Import libraries
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
-from imblearn.over_sampling import SMOTE
 from sklearn.model_selection import train_test_split
 
 file_path = 'data/diabetes_012_health_indicators_BRFSS2015.csv'
