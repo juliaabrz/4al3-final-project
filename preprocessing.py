@@ -12,7 +12,7 @@ def preprocessing():
     data = data.dropna()
 
     # Separate target and features
-    target = 'Diabetes_012'
+    target = 'Diabetes_binary'
     X = data.drop(columns=[target])
     y = data[target]
 
