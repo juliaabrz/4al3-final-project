@@ -8,6 +8,9 @@ def preprocessing():
     # Load the dataset
     data = pd.read_csv(file_path)
 
+    # getting 10% of the samples
+    data = data[:int(len(data)*0.1)]
+
     # drop features that have nan
     data = data.dropna()
 
@@ -21,7 +24,6 @@ def preprocessing():
     scaler = MinMaxScaler()
     X[numerical_columns] = scaler.fit_transform(X[numerical_columns])
 
-    
     
     def balance_classes(X, y):
         # count samples
