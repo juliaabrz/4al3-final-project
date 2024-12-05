@@ -143,4 +143,4 @@ def neural_network() :
     print(f"Test F1 Score:", test_f1*100)
     
 
-main()
+neural_network()
