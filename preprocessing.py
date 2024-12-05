@@ -8,21 +8,25 @@ def preprocessing(file_path):
     # Load the dataset
     data = pd.read_csv(file_path)
 
+    # drop features that have nan
+    data = data.dropna()
+
     # Separate target and features
     target = 'Diabetes_012'
     X = data.drop(columns=[target])
     y = data[target]
 
     # Normalize numerical features using Min-Max Scaling
-    numerical_columns = ['BMI', 'MentHlth', 'PhysHlth', 'Age', 'Income' , 'Education', 'GenHealth' ] 
+    numerical_columns = ['BMI', 'MentHlth', 'PhysHlth', 'Age', 'Income' , 'Education', 'GenHlth' ] 
     scaler = MinMaxScaler()
     X[numerical_columns] = scaler.fit_transform(X[numerical_columns])
 
     
+    
     def balance_classes(X, y):
         # count samples
-        class_counts = Counter(y)
-        max_count = max(class_counts.values())
+        class_counts = y.value_counts()
+        max_count = max(class_counts.values)
         
         # X_balanced and y_balanced store the balanced classes
         X_balanced = []
@@ -52,7 +56,7 @@ def preprocessing(file_path):
 
     # Split the data into training and testing sets (80/20 split)
     X_train, X_test, y_train, y_test = train_test_split(
-        X_resampled, y_resampled, test_size=0.2, random_state=42
+        X_balanced, y_balanced, test_size=0.2, random_state=42
     )
 
     return X_train, X_test, y_train, y_test
