@@ -3,8 +3,8 @@ import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
 
-file_path = 'data/diabetes_012_health_indicators_BRFSS2015.csv'
-def preprocessing(file_path):
+def preprocessing():
+    file_path='../data/diabetes_012_health_indicators_BRFSS2015.csv'
     # Load the dataset
     data = pd.read_csv(file_path)
 
