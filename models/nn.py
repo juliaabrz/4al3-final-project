@@ -1,3 +1,6 @@
+### NEURAL NETWORK ###
+
+# import necessary libraries
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -51,39 +54,11 @@ class diabetes_neural_network(nn.Module) :
     x = torch.sigmoid(x)  
     return x
   
-def neural_network() :
-    # load the dataset
-    X_train, X_test, y_train, y_test = pp.preprocessing()
-
-    # split training into train and validation-implent kfold cross validation later
-    X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42)
-
-    # convert to tensors
-    X_train_tensor = torch.tensor(X_train.values, dtype=torch.float32)
-    y_train_tensor = torch.tensor(y_train.values, dtype=torch.float32).unsqueeze(1)#adding a dimension to the tensor to make it compatible with the model
-    X_val_tensor = torch.tensor(X_val.values, dtype=torch.float32)
-    y_val_tensor = torch.tensor(y_val.values, dtype=torch.float32).unsqueeze(1)#adding a dimension to the tensor to make it compatible with the model
-    X_test_tensor = torch.tensor(X_test.values, dtype=torch.float32)
-    y_test_tensor = torch.tensor(y_test.values, dtype=torch.float32).unsqueeze(1)#adding a dimension to the tensor to make it compatible with the model
-
-    # create dataloaders for batch training
-    train_dataset = TensorDataset(X_train_tensor, y_train_tensor)
-    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
-
-    # get number of features
-    num_features = X_train_tensor.shape[1]
-
-    # # initialize model
-    model = diabetes_neural_network(num_features)
-
-    # define loss function
-    loss_func = nn.BCELoss()
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
-
+def training_nn(model, train_loader, optimizer, loss_func, X_val_tensor, y_val_tensor) :
     # train
     training_losses = []
     # Run the algorithm for this many iterations
-    EPOCH = 50
+    EPOCH = 200
     for e in range(EPOCH):
         model.train() # sets the model to training mode
         cumulative_loss = 0 # intantiate the cumulative loss
@@ -126,6 +101,7 @@ def neural_network() :
     plt.legend()
     plt.show()
 
+def evaluating_nn(model, X_test_tensor, y_test_tensor) :
     # evaluate on held out test set
     model.eval() # sets the model to evaluation mode
     with torch.no_grad(): # no gradient computation during evaluation
@@ -141,6 +117,40 @@ def neural_network() :
     print("Test Accuracy:", test_accuracy*100)
     print(f"Test Recall:", test_recall*100)
     print(f"Test F1 Score:", test_f1*100)
-    
 
-neural_network()
+def neural_network_model() :
+    # load the dataset
+    X_train, X_test, y_train, y_test = pp.preprocessing()
+
+    # split training into train and validation-implent kfold cross validation later
+    X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42)
+
+    # convert to tensors
+    X_train_tensor = torch.tensor(X_train.values, dtype=torch.float32)
+    y_train_tensor = torch.tensor(y_train.values, dtype=torch.float32).unsqueeze(1)#adding a dimension to the tensor to make it compatible with the model
+    X_val_tensor = torch.tensor(X_val.values, dtype=torch.float32)
+    y_val_tensor = torch.tensor(y_val.values, dtype=torch.float32).unsqueeze(1)#adding a dimension to the tensor to make it compatible with the model
+    X_test_tensor = torch.tensor(X_test.values, dtype=torch.float32)
+    y_test_tensor = torch.tensor(y_test.values, dtype=torch.float32).unsqueeze(1)#adding a dimension to the tensor to make it compatible with the model
+
+    # create dataloaders for batch training
+    train_dataset = TensorDataset(X_train_tensor, y_train_tensor)
+    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+
+    # get number of features
+    num_features = X_train_tensor.shape[1]
+
+    # # initialize model
+    model = diabetes_neural_network(num_features)
+
+    # define loss function
+    loss_func = nn.BCELoss()
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+
+    # train the model
+    training_nn(model, train_loader, optimizer, loss_func, X_val_tensor, y_val_tensor)
+
+    # evaluate the model
+    evaluating_nn(model, X_test_tensor, y_test_tensor)
+
+neural_network_model()
