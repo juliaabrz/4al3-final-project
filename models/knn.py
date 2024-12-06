@@ -4,6 +4,7 @@
 import pandas as pd
 import numpy as np
 import sklearn
+from sklearn.metrics import accuracy_score, recall_score, f1_score
 import sys
 import os
 
@@ -37,11 +38,16 @@ class KNearestNeighbours:
         return np.sqrt(np.sum(np.square(x1-x2)))
     
     def find_distances (self,x):
-        print (type(x))
+        
         distances = []
         for sample in self.data:
             distance = self.euclidean_distance(sample[:21],x[:21])
             distances.append((distance,sample[21])) # add distance and class to list
+        
+        '''
+        diff = self.x_validation[:, np.newaxis, :] - self.x_train[np.newaxis, :, :]
+        distances = np.sqrt(np.sum(diff ** 2, axis=2))
+        '''
         return distances
 
     def classify (self,x):
@@ -63,12 +69,25 @@ class KNearestNeighbours:
             return 1.0
         else:
             return 0.0
-    
+        
+    def validate (self,):
+        y_pred = np.empty(self.x_validation.shape[0])
+        for d in range (self.x_validation.shape[0]):
+            y_pred[d] = self.classify(self.x_validation[d])
+            
+        print(y_pred)
+        accuracy = accuracy_score(self.y_validation, y_pred)
+        print (y_pred.shape)
+        print (accuracy)
+        
+        
 
 def run_knn():
-    x_train, x_validation, y_train, y_validation = pp.preprocessing()
+    x_train, x_validation, y_train, y_validation = pp.preprocessing(0.02)
+
     model = KNearestNeighbours(10,x_train, x_validation, y_train, y_validation)
     print (model.classify(model.validation_data[0, :]))
+    model.validate()
 
 run_knn()
 
@@ -77,4 +96,5 @@ julia notes:
 - try out KD trees or ball trees
 - feature selection
 - evaluation needed 
+- too slow
 '''
