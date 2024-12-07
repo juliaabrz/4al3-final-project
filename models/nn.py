@@ -1,4 +1,5 @@
-### NEURAL NETWORK ###
+### NEURAL NETWORK MODEL IMPLEMENTATION ###
+## By Nicole Sorokin ##
 
 # import necessary libraries
 import torch
@@ -11,9 +12,10 @@ from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, TensorDataset # for batch training
 from sklearn.metrics import accuracy_score, recall_score, f1_score # for evaluating
 
+# add file path so it can access the preprocessing file
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-import preprocessing as pp
+import preprocessing as pp # import the preprocessing file
 
 # defining the nn
 class diabetes_neural_network(nn.Module) :
@@ -28,6 +30,7 @@ class diabetes_neural_network(nn.Module) :
     # self.fc5 = nn.Linear(32, 1)# 0 = no diabetes 1 = prediabetes or diabetes
     self.dropout = nn.Dropout(0.5) # trying regularization
     
+  # define the forward pass of the model
   def forward(self, x) :
     # fc
     x = self.fc1(x)
@@ -51,14 +54,15 @@ class diabetes_neural_network(nn.Module) :
     # x = F.relu(x)
     # outputting as a probability
     x = self.dropout(x) # regularization
-    x = torch.sigmoid(x)  
+    x = torch.sigmoid(x) # apply sigmoid to get probabilities
     return x
   
+# define the training function
 def training_nn(model, train_loader, optimizer, loss_func, X_val_tensor, y_val_tensor) :
-    # train
-    training_losses = []
+    print("Training model...")
+    training_losses = [] # to store the training losses
     # Run the algorithm for this many iterations
-    EPOCH = 200
+    EPOCH = 100
     for e in range(EPOCH):
         model.train() # sets the model to training mode
         cumulative_loss = 0 # intantiate the cumulative loss
@@ -71,7 +75,6 @@ def training_nn(model, train_loader, optimizer, loss_func, X_val_tensor, y_val_t
            optimizer.step() # perform gradient descent
            cumulative_loss += loss.item() # add the loss to the cumulative loss
 
-        print(cumulative_loss / len(train_loader)) # print the average loss for this epoch
         training_losses.append(cumulative_loss / len(train_loader)) # append the average loss for this epoch to the list
 
         # evaluate on validation set
@@ -88,10 +91,11 @@ def training_nn(model, train_loader, optimizer, loss_func, X_val_tensor, y_val_t
 
         # print the evaluation metrics for every 10th epoch
         if e % 10 == 0 and e != 0:
-          print("epoch:", e)
-          print("validation accuracy:", val_accuracy)
-          print("validation recall:", val_recall)
-          print("validation f1 score:", val_f1)
+          print("Current epoch:", e)
+          print("\tAvg training loss:", cumulative_loss / len(train_loader))
+          print("\tValidation accuracy:", val_accuracy)
+          print("\tValidation recall:", val_recall)
+          print("\tValidation f1 score:", val_f1)
 
     # plot the validation losses over epochs
     plt.title("Training Loss Across Epochs")
@@ -101,6 +105,7 @@ def training_nn(model, train_loader, optimizer, loss_func, X_val_tensor, y_val_t
     plt.legend()
     plt.show()
 
+# define the evaluation function
 def evaluating_nn(model, X_test_tensor, y_test_tensor) :
     # evaluate on held out test set
     model.eval() # sets the model to evaluation mode
@@ -114,13 +119,16 @@ def evaluating_nn(model, X_test_tensor, y_test_tensor) :
         test_recall = recall_score(y_test_numpy, test_predictions)
         test_f1 = f1_score(y_test_numpy, test_predictions)
 
-    print("Test Accuracy:", test_accuracy*100)
-    print(f"Test Recall:", test_recall*100)
-    print(f"Test F1 Score:", test_f1*100)
+    # print the evaluation metrics
+    print("\nEvaluation Metrics On Held Out Test Set")
+    print("\tAccuracy:", test_accuracy*100)
+    print("\tRecall:", test_recall*100)
+    print("\tF1 score:", test_f1*100)
 
+# define the main function where the model is trained and evaluated
 def neural_network_model() :
     # load the dataset
-    X_train, X_test, y_train, y_test = pp.preprocessing()
+    X_train, X_test, y_train, y_test = pp.preprocessing(0.1) # use 10% of the samples for training
 
     # split training into train and validation-implent kfold cross validation later
     X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42)
@@ -140,11 +148,13 @@ def neural_network_model() :
     # get number of features
     num_features = X_train_tensor.shape[1]
 
-    # # initialize model
+    # initialize model with the number of features
     model = diabetes_neural_network(num_features)
 
     # define loss function
     loss_func = nn.BCELoss()
+
+    # define optimizer
     optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
 
     # train the model
@@ -153,4 +163,5 @@ def neural_network_model() :
     # evaluate the model
     evaluating_nn(model, X_test_tensor, y_test_tensor)
 
+# call the main function
 neural_network_model()
