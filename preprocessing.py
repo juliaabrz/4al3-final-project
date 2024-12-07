@@ -10,7 +10,7 @@ def preprocessing(percentage):
     data = pd.read_csv(file_path)
     data = shuffle(data)
 
-    data = data[:int(len(data)*percentage)]
+    data = data[:int(len(data)*percentage)] # select the number of samples you want to use
 
     # drop features that have nan
     data = data.dropna()
