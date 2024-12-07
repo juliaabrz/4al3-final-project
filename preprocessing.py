@@ -2,14 +2,17 @@
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
+from sklearn.utils import shuffle
 
-def preprocessing():
+def preprocessing(percentage):
     file_path='../data/diabetes_binary_health_indicators_BRFSS2015.csv'
     # Load the dataset
     data = pd.read_csv(file_path)
+    data = shuffle(data)
 
     # getting 10% of the samples
-    data = data[:int(len(data)*0.1)]
+
+    data = data[:int(len(data)*percentage)]
 
     # drop features that have nan
     data = data.dropna()
