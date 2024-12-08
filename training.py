@@ -1,24 +1,98 @@
-### NEURAL NETWORK MODEL IMPLEMENTATION ###
-## By Nicole Sorokin ##
-
-# import necessary libraries
+import pandas as pd
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.model_selection import train_test_split
+from sklearn.utils import shuffle
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import sys
-import os
 import matplotlib.pyplot as plt
-from sklearn.model_selection import train_test_split
-from torch.utils.data import DataLoader, TensorDataset # for batch training
 from sklearn.metrics import accuracy_score, recall_score, f1_score # for evaluating
-import numpy as np
+from torch.utils.data import DataLoader, TensorDataset # for batch training
 
-# add file path so it can access the preprocessing file
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+def preprocessing(percentage, kfold):
+    file_path='diabetes_binary_health_indicators_BRFSS2015.csv'
+    # can be downloaded from here: 
+    # Load the dataset
+    data = pd.read_csv(file_path)
+    data = shuffle(data)
 
-import preprocessing as pp # import the preprocessing file
+    data = data[:int(len(data)*percentage)] # select the number of samples you want to use
 
-# defining the nn
+    # drop features that have nan
+    data = data.dropna()
+
+    # Separate target and features
+    target = 'Diabetes_binary'
+    X = data.drop(columns=[target, 'Stroke'])
+    y = data[target]
+
+    # # correlation analysis commented out for now since still working on it
+    correlations = X.corrwith(y)
+    selected_features = correlations[correlations.abs() > 0.1].index
+    print("Selected features based on correlation:", selected_features.tolist())
+    # X = X[selected_features]
+
+    numerical_columns = ['BMI', 'MentHlth', 'PhysHlth', 'Age', 'Income' , 'Education', 'GenHlth' ] 
+    existing_num_cols = []
+    
+    for feature in numerical_columns:
+        if feature in numerical_columns :
+            existing_num_cols.append(feature)
+    # Normalize numerical features using Min-Max Scaling
+    scaler = MinMaxScaler()
+    X[existing_num_cols] = scaler.fit_transform(X[existing_num_cols])
+
+    # X = data.drop(columns=['Income'])
+
+    
+    def balance_classes(X, y):
+        # count samples
+        class_counts = y.value_counts()
+        max_count = max(class_counts.values)
+        
+        # X_balanced and y_balanced store the balanced classes
+        X_balanced = []
+        y_balanced = []
+
+        for cls in class_counts.keys():
+            X_class = X[y == cls]
+            y_class = y[y == cls]
+            
+            if class_counts[cls] < max_count:
+                multiplier = max_count // class_counts[cls]
+                remainder = max_count % class_counts[cls]
+                X_upsampled = pd.concat([X_class] * multiplier + [X_class.sample(remainder, replace=True)])
+                y_upsampled = pd.concat([y_class] * multiplier + [y_class.sample(remainder, replace=True)])
+            else:
+                X_upsampled = X_class
+                y_upsampled = y_class
+            
+            X_balanced.append(X_upsampled)
+            y_balanced.append(y_upsampled)
+        
+        X_balanced = pd.concat(X_balanced)
+        y_balanced = pd.concat(y_balanced)
+        return X_balanced, y_balanced
+
+    X_balanced, y_balanced = balance_classes(X, y)
+
+    if not kfold:
+        # Split the data into training and testing sets (80/20 split)
+        X_train, X_test, y_train, y_test = train_test_split(
+            X_balanced, y_balanced, test_size=0.2, random_state=42
+        )
+        return X_train, X_test, y_train, y_test
+
+    # if for k fold, we want to return all the data
+    return X_balanced, y_balanced
+
+# loading training data + pre-processing
+X_train, X_test, y_train, y_test = preprocessing(0.1, False)
+
+# training model
+##############################
+#    Neural Network Model    #
+##############################
 class diabetes_neural_network(nn.Module) :
   def __init__(self, features) :
     super(diabetes_neural_network, self).__init__()
@@ -106,37 +180,9 @@ def training_nn(model, train_loader, optimizer, loss_func, X_val_tensor, y_val_t
     plt.legend()
     plt.show()
 
-# define the evaluation function
-def evaluating_nn(model, X_test_tensor, y_test_tensor) :
-    # evaluate on held out test set
-    model.eval() # sets the model to evaluation mode
-    with torch.no_grad(): # no gradient computation during evaluation
-        test_outputs = model(X_test_tensor) # predict the probabilities (between 0 and 1)
-        test_predictions = (test_outputs >= 0.5).float() # threshold at 0.5 to get binary predictions
-        y_test_numpy = y_test_tensor.numpy() # convert tensor to numpy array
-
-        # evaluation metrics
-        test_accuracy = accuracy_score(y_test_numpy, test_predictions)
-        test_recall = recall_score(y_test_numpy, test_predictions)
-        test_f1 = f1_score(y_test_numpy, test_predictions)
-
-    # print the evaluation metrics
-    print("\nEvaluation Metrics On Held Out Test Set")
-    print("\tAccuracy:", test_accuracy*100)
-    print("\tRecall:", test_recall*100)
-    print("\tF1 score:", test_f1*100)
-
-# define the main function where the model is trained and evaluated
 def neural_network_model() :
-    # load the dataset
-    X_train, X_test, y_train, y_test = pp.preprocessing(0.1, False) # use 10% of the samples for training
-
     # split training into train and validation-implent kfold cross validation later
     X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42)
-
-    # save the data
-    np.save("X_test.npy", X_test)  
-    np.save("y_test.npy", y_test)
 
     # convert to tensors
     X_train_tensor = torch.tensor(X_train.values, dtype=torch.float32)
@@ -145,7 +191,6 @@ def neural_network_model() :
     y_val_tensor = torch.tensor(y_val.values, dtype=torch.float32).unsqueeze(1)#adding a dimension to the tensor to make it compatible with the model
     X_test_tensor = torch.tensor(X_test.values, dtype=torch.float32)
     y_test_tensor = torch.tensor(y_test.values, dtype=torch.float32).unsqueeze(1)#adding a dimension to the tensor to make it compatible with the model
-
 
     # create dataloaders for batch training
     train_dataset = TensorDataset(X_train_tensor, y_train_tensor)
@@ -166,12 +211,8 @@ def neural_network_model() :
     # train the model
     training_nn(model, train_loader, optimizer, loss_func, X_val_tensor, y_val_tensor)
 
-    model_path = "nn.pkl"
-    torch.save(model.state_dict(), model_path)
-    print(f"Model saved as: {model_path}")
+# svm
 
-    # evaluate the model
-    evaluating_nn(model, X_test_tensor, y_test_tensor)
+# knn
 
-# call the main function
-neural_network_model()
+# validation data, and model evaluation during training
