@@ -4,7 +4,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__))))
 
 import preprocessing as pp
 # import nn
-#import knn
+import knn
 #import svm
 
 def main() :
@@ -13,7 +13,7 @@ def main() :
 
   # call the models
   # nn.neural_network(X_train, y_train, X_test, y_test)
-  # knn.knn(X_train, y_train, X_test, y_test)
+  knn.run_knn()
   # svm.svm(X_train, y_train, X_test, y_test)
 
 main()

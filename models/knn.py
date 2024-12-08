@@ -4,7 +4,7 @@
 import pandas as pd
 import numpy as np
 import sklearn
-from sklearn.metrics import accuracy_score, recall_score, f1_score
+from sklearn.metrics import accuracy_score, recall_score, f1_score, precision_score
 from sklearn.model_selection import KFold
 import sys
 import os
@@ -12,7 +12,6 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import preprocessing as pp
-
 
 class KNearestNeighbours:
     def __init__(self, k, input, target):
@@ -64,6 +63,7 @@ class KNearestNeighbours:
 
         accuracies = []
         recalls = []
+        precisions = []
         f1_scores = []
         # use KFold from sklearn to split the data 
         k_fold_split = KFold(n_splits=k_value,shuffle=True, random_state = 42)
@@ -91,11 +91,15 @@ class KNearestNeighbours:
             recall = recall_score(test_y,y_pred)
             print ("Model recall:",recall)
 
+            precision = precision_score(test_y,y_pred)
+            print ("Model precision", precision)
+
             f1 = f1_score(test_y,y_pred)
             print ("F1 score:",f1)
 
             accuracies.append(accuracy)
             recalls.append(recall)
+            precisions.append(precision)
             f1_scores.append(f1)
         
 
@@ -106,18 +110,23 @@ class KNearestNeighbours:
         average_rec = np.mean(recalls,axis=0)
         f1_scores = np.array(f1_scores)
         average_f1 = np.mean(f1_scores,axis=0)
+        precisions = np.array(precisions)
+        average_pre = np.mean(precisions, axis=0)
 
-        return (average_acc,average_rec,average_f1)
+        return (average_acc,average_rec,average_pre,average_f1)
 
 def run_knn():
 
     x_train, y_train = pp.preprocessing(0.02, True) # get data from preprocessing function, will be doing k fold
-    print(x_train.shape)
-    model = KNearestNeighbours(5,x_train, y_train)
+    print("Shape of data used", x_train.shape)
 
-    acc, rec, f1 = model.k_fold_validation(5)
+
+    model = KNearestNeighbours(5,x_train, y_train)
+    # classify data
+    acc, rec, prec, f1 = model.k_fold_validation(5)
     print ("Average model accuracy:",acc)
     print ("Average model recall:",rec)
+    print ("Average model precision", prec)
     print ("Average F1 score:",f1)
 
 run_knn()
