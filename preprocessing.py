@@ -10,22 +10,33 @@ def preprocessing(percentage, kfold):
     data = pd.read_csv(file_path)
     data = shuffle(data)
 
-    # getting 10% of the samples
-
-    data = data[:int(len(data)*percentage)]
+    data = data[:int(len(data)*percentage)] # select the number of samples you want to use
 
     # drop features that have nan
     data = data.dropna()
 
     # Separate target and features
     target = 'Diabetes_binary'
-    X = data.drop(columns=[target])
+    X = data.drop(columns=[target, 'Stroke'])
     y = data[target]
 
-    # Normalize numerical features using Min-Max Scaling
+    # # correlation analysis commented out for now since still working on it
+    # correlations = X.corrwith(y)
+    # selected_features = correlations[correlations.abs() > 0.1].index
+    # print("Selected features based on correlation:", selected_features.tolist())
+    # X = X[selected_features]
+
     numerical_columns = ['BMI', 'MentHlth', 'PhysHlth', 'Age', 'Income' , 'Education', 'GenHlth' ] 
+    existing_num_cols = []
+    
+    for feature in numerical_columns:
+        if feature in numerical_columns :
+            existing_num_cols.append(feature)
+    # Normalize numerical features using Min-Max Scaling
     scaler = MinMaxScaler()
-    X[numerical_columns] = scaler.fit_transform(X[numerical_columns])
+    X[existing_num_cols] = scaler.fit_transform(X[existing_num_cols])
+
+    # X = data.drop(columns=['Income'])
 
     
     def balance_classes(X, y):
