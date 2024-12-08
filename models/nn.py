@@ -128,7 +128,7 @@ def evaluating_nn(model, X_test_tensor, y_test_tensor) :
 # define the main function where the model is trained and evaluated
 def neural_network_model() :
     # load the dataset
-    X_train, X_test, y_train, y_test = pp.preprocessing(0.1) # use 10% of the samples for training
+    X_train, X_test, y_train, y_test = pp.preprocessing(0.1, False) # use 10% of the samples for training
 
     # split training into train and validation-implent kfold cross validation later
     X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42)
