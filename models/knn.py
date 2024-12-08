@@ -5,10 +5,9 @@ import pandas as pd
 import numpy as np
 import sklearn
 from sklearn.metrics import accuracy_score, recall_score, f1_score
+from sklearn.model_selection import KFold
 import sys
 import os
-
-
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -16,23 +15,16 @@ import preprocessing as pp
 
 
 class KNearestNeighbours:
-    def __init__(self, k, x_train, x_validation, y_train, y_validation):
+    def __init__(self, k, input, target):
         # get data from preprocessing
         self.k = k
-        self.x_train = np.array(x_train)
-        self.x_validation = np.array(x_validation)
-        self.y_train = np.array(y_train)
-        self.y_train = self.y_train.reshape(-1,1)
-        self.y_validation = np.array(y_validation)
-        self.y_validation = self.y_validation.reshape(-1,1)
-        print (self.x_train.shape)
-        print (self.y_train.shape)
-
-        #concatenate together x and y, last label is classification
-        self.data = np.hstack((self.x_train,self.y_train))
-        print(self.data.shape)
-
-        self.validation_data = np.hstack((self.x_validation,self.y_validation))
+        # drop sensitive data 
+        drop_cols = ['Age','Education','Income','Sex','MentHlth']
+        input = input.drop(columns = drop_cols)
+        self.num_cols = 21 - len(drop_cols)
+        self.input = np.array(input)
+        self.target = np.array(target)
+        self.target = self.target.reshape(-1,1)
 
     def euclidean_distance (self, x1, x2): # calculates the euclidean distance
         return np.sqrt(np.sum(np.square(x1-x2)))
@@ -41,8 +33,8 @@ class KNearestNeighbours:
         
         distances = []
         for sample in self.data:
-            distance = self.euclidean_distance(sample[:21],x[:21])
-            distances.append((distance,sample[21])) # add distance and class to list
+            distance = self.euclidean_distance(sample[:self.num_cols],x[:self.num_cols])
+            distances.append((distance,sample[self.num_cols])) # add distance and class to list
         
         '''
         diff = self.x_validation[:, np.newaxis, :] - self.x_train[np.newaxis, :, :]
@@ -69,25 +61,71 @@ class KNearestNeighbours:
             return 1.0
         else:
             return 0.0
-        
-    def validate (self,):
-        y_pred = np.empty(self.x_validation.shape[0])
-        for d in range (self.x_validation.shape[0]):
-            y_pred[d] = self.classify(self.x_validation[d])
+
+    def k_fold_validation (self,k_value):
+
+        accuracies = []
+        recalls = []
+        f1_scores = []
+        # use KFold from sklearn to split the data 
+        k_fold_split = KFold(n_splits=k_value,shuffle=True, random_state = 42)
+
+        # go through each fold
+        for train_index, test_index in k_fold_split.split(self.input,self.target):
+            #get the train and test sets from the input and target variables
+            train_x = self.input[train_index]
+            train_y = self.target[train_index]
+            test_x = self.input[test_index]
+            test_y = self.target[test_index]
+
+
+            #concatenate together x and y, last label is classification
+            self.data = np.hstack((train_x,train_y))
+            print(self.data.shape)
             
-        print(y_pred)
-        accuracy = accuracy_score(self.y_validation, y_pred)
-        print (y_pred.shape)
-        print (accuracy)
+            y_pred = np.empty(test_x.shape[0])
+            for d in range (test_x.shape[0]):
+                y_pred[d] = self.classify(test_x[d])
+            
+            accuracy = accuracy_score(test_y, y_pred)
+            print ("Model accuracy:",accuracy)
+
+            recall = recall_score(test_y,y_pred)
+            print ("Model recall:",recall)
+
+            f1 = f1_score(test_y,y_pred)
+            print ("F1 score:",f1)
+
+            accuracies.append(accuracy)
+            recalls.append(recall)
+            f1_scores.append(f1)
+        
+
+        # convert arrays to np arrays for easy calculation of mean 
+        accuracies = np.array(accuracies)
+        average_acc = np.mean(accuracies,axis=0)
+        recalls = np.array(recalls)
+        average_rec = np.mean(recalls,axis=0)
+        f1_scores = np.array(f1_scores)
+        average_f1 = np.mean(f1_scores,axis=0)
+
+        return (average_acc,average_rec,average_f1)
+        
         
         
 
 def run_knn():
-    x_train, x_validation, y_train, y_validation = pp.preprocessing(0.02)
 
-    model = KNearestNeighbours(10,x_train, x_validation, y_train, y_validation)
-    print (model.classify(model.validation_data[0, :]))
-    model.validate()
+    x_train, y_train = pp.preprocessing(0.025, True) # get data from preprocessing function, will be doing k fold
+    print(x_train.shape)
+    model = KNearestNeighbours(5,x_train, y_train)
+
+    acc, rec, f1 = model.k_fold_validation(5)
+    print ("Average model accuracy:",acc)
+
+    print ("Average model recall:",rec)
+
+    print ("Average F1 score:",f1)
 
 run_knn()
 
@@ -97,4 +135,5 @@ julia notes:
 - feature selection
 - evaluation needed 
 - too slow
+- correlation analysis
 '''
