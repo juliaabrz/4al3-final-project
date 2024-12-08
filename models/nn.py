@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, TensorDataset # for batch training
 from sklearn.metrics import accuracy_score, recall_score, f1_score # for evaluating
+import numpy as np
 
 # add file path so it can access the preprocessing file
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -62,7 +63,7 @@ def training_nn(model, train_loader, optimizer, loss_func, X_val_tensor, y_val_t
     print("Training model...")
     training_losses = [] # to store the training losses
     # Run the algorithm for this many iterations
-    EPOCH = 100
+    EPOCH = 200
     for e in range(EPOCH):
         model.train() # sets the model to training mode
         cumulative_loss = 0 # intantiate the cumulative loss
@@ -133,6 +134,10 @@ def neural_network_model() :
     # split training into train and validation-implent kfold cross validation later
     X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42)
 
+    # save the data
+    np.save("X_test.npy", X_test)  
+    np.save("y_test.npy", y_test)
+
     # convert to tensors
     X_train_tensor = torch.tensor(X_train.values, dtype=torch.float32)
     y_train_tensor = torch.tensor(y_train.values, dtype=torch.float32).unsqueeze(1)#adding a dimension to the tensor to make it compatible with the model
@@ -140,6 +145,7 @@ def neural_network_model() :
     y_val_tensor = torch.tensor(y_val.values, dtype=torch.float32).unsqueeze(1)#adding a dimension to the tensor to make it compatible with the model
     X_test_tensor = torch.tensor(X_test.values, dtype=torch.float32)
     y_test_tensor = torch.tensor(y_test.values, dtype=torch.float32).unsqueeze(1)#adding a dimension to the tensor to make it compatible with the model
+
 
     # create dataloaders for batch training
     train_dataset = TensorDataset(X_train_tensor, y_train_tensor)
@@ -159,6 +165,10 @@ def neural_network_model() :
 
     # train the model
     training_nn(model, train_loader, optimizer, loss_func, X_val_tensor, y_val_tensor)
+
+    model_path = "nn.pkl"
+    torch.save(model.state_dict(), model_path)
+    print(f"Model saved as: {model_path}")
 
     # evaluate the model
     evaluating_nn(model, X_test_tensor, y_test_tensor)
