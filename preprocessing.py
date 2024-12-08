@@ -4,7 +4,7 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
 
-def preprocessing(percentage):
+def preprocessing(percentage, kfold):
     file_path='../data/diabetes_binary_health_indicators_BRFSS2015.csv'
     # Load the dataset
     data = pd.read_csv(file_path)
@@ -70,9 +70,12 @@ def preprocessing(percentage):
 
     X_balanced, y_balanced = balance_classes(X, y)
 
-    # Split the data into training and testing sets (80/20 split)
-    X_train, X_test, y_train, y_test = train_test_split(
-        X_balanced, y_balanced, test_size=0.2, random_state=42
-    )
+    if not kfold:
+        # Split the data into training and testing sets (80/20 split)
+        X_train, X_test, y_train, y_test = train_test_split(
+            X_balanced, y_balanced, test_size=0.2, random_state=42
+        )
+        return X_train, X_test, y_train, y_test
 
-    return X_train, X_test, y_train, y_test
+    # if for k fold, we want to return all the data
+    return X_balanced, y_balanced
