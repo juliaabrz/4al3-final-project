@@ -19,9 +19,10 @@ class KNearestNeighbours:
         # get data from preprocessing
         self.k = k
         # drop sensitive data 
-        drop_cols = ['Age','Education','Income','Sex','MentHlth']
+        drop_cols = ['Education','Income','Sex','MentHlth']
         input = input.drop(columns = drop_cols)
-        self.num_cols = 21 - len(drop_cols)
+        # determine the number of features (-1) for later on
+        self.num_cols = 20 - len(drop_cols)
         self.input = np.array(input)
         self.target = np.array(target)
         self.target = self.target.reshape(-1,1)
@@ -32,14 +33,11 @@ class KNearestNeighbours:
     def find_distances (self,x):
         
         distances = []
+        # find the distance from each sample with the current data point
         for sample in self.data:
-            distance = self.euclidean_distance(sample[:self.num_cols],x[:self.num_cols])
+            distance = self.euclidean_distance(sample[:self.num_cols],x)
             distances.append((distance,sample[self.num_cols])) # add distance and class to list
         
-        '''
-        diff = self.x_validation[:, np.newaxis, :] - self.x_train[np.newaxis, :, :]
-        distances = np.sqrt(np.sum(diff ** 2, axis=2))
-        '''
         return distances
 
     def classify (self,x):
@@ -81,12 +79,12 @@ class KNearestNeighbours:
 
             #concatenate together x and y, last label is classification
             self.data = np.hstack((train_x,train_y))
-            print(self.data.shape)
             
             y_pred = np.empty(test_x.shape[0])
             for d in range (test_x.shape[0]):
                 y_pred[d] = self.classify(test_x[d])
             
+            # evaluate model for each fold
             accuracy = accuracy_score(test_y, y_pred)
             print ("Model accuracy:",accuracy)
 
@@ -101,7 +99,7 @@ class KNearestNeighbours:
             f1_scores.append(f1)
         
 
-        # convert arrays to np arrays for easy calculation of mean 
+        # convert arrays to np arrays for easy calculation of mean scores
         accuracies = np.array(accuracies)
         average_acc = np.mean(accuracies,axis=0)
         recalls = np.array(recalls)
@@ -110,30 +108,16 @@ class KNearestNeighbours:
         average_f1 = np.mean(f1_scores,axis=0)
 
         return (average_acc,average_rec,average_f1)
-        
-        
-        
 
 def run_knn():
 
-    x_train, y_train = pp.preprocessing(0.025, True) # get data from preprocessing function, will be doing k fold
+    x_train, y_train = pp.preprocessing(0.02, True) # get data from preprocessing function, will be doing k fold
     print(x_train.shape)
     model = KNearestNeighbours(5,x_train, y_train)
 
     acc, rec, f1 = model.k_fold_validation(5)
     print ("Average model accuracy:",acc)
-
     print ("Average model recall:",rec)
-
     print ("Average F1 score:",f1)
 
 run_knn()
-
-'''
-julia notes:
-- try out KD trees or ball trees
-- feature selection
-- evaluation needed 
-- too slow
-- correlation analysis
-'''
