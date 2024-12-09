@@ -212,7 +212,6 @@ def neural_network_model() :
     training_nn(model, train_loader, optimizer, loss_func, X_val_tensor, y_val_tensor)
 
 # svm
+# class
 
-# knn
-
-# validation data, and model evaluation during training
+#main func
