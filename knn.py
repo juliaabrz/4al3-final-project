@@ -119,7 +119,7 @@ class KNearestNeighbours:
 
 # preprocessing function is in this file for the sake of submission
 def preprocessing(percentage, kfold):
-    file_path='../data/diabetes_binary_health_indicators_BRFSS2015.csv'
+    file_path='diabetes_binary_health_indicators_BRFSS2015.csv'
     # Load the dataset
     data = pd.read_csv(file_path)
     data = shuffle(data)
@@ -196,7 +196,7 @@ def preprocessing(percentage, kfold):
 
 def run_knn():
 
-    x_train, y_train = preprocessing(0.0125, True) # get data from preprocessing function, will be doing k fold
+    x_train, y_train = preprocessing(0.01, True) # get data from preprocessing function, will be doing k fold
 
     model = KNearestNeighbours(5,x_train, y_train)
     # classify data

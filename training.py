@@ -34,7 +34,7 @@ def preprocessing(percentage, kfold):
     # # correlation analysis commented out for now since still working on it
     correlations = X.corrwith(y)
     selected_features = correlations[correlations.abs() > 0.1].index
-    print("Selected features based on correlation:", selected_features.tolist())
+    # print("Selected features based on correlation:", selected_features.tolist())
     # X = X[selected_features]
 
     numerical_columns = ['BMI', 'MentHlth', 'PhysHlth', 'Age', 'Income' , 'Education', 'GenHlth' ] 
@@ -142,7 +142,7 @@ def training_nn(model, train_loader, optimizer, loss_func, X_val_tensor, y_val_t
     print("Training model...")
     training_losses = [] # to store the training losses
     # Run the algorithm for this many iterations
-    EPOCH = 200
+    EPOCH = 100
     for e in range(EPOCH):
         model.train() # sets the model to training mode
         cumulative_loss = 0 # intantiate the cumulative loss
@@ -219,13 +219,14 @@ def neural_network_model(X_train, X_test, y_train, y_test) :
     model_path = "nn.pkl"
     torch.save(model, model_path)
 
-# neural_network_model(X_train, X_test, y_train, y_test)
+# COMMENT THIS OUT WHEN YOU RUN TEST.PY!!!!!
+neural_network_model(X_train, X_test, y_train, y_test)
 # svm
 ##############################
 #   Support Vector Machine    #
 ##############################
 class SVM:
-    def __init__(self, learning_rate=0.001, lambda_param=0.01, n_iters=10):
+    def __init__(self, learning_rate=0.001, lambda_param=0.01, n_iters=150):
         self.lr = learning_rate
         self.lambda_param = lambda_param
         self.n_iters = n_iters
@@ -300,9 +301,9 @@ def svm_model():
     y = np.asarray(y, dtype=int)
  
     hyperparams = [
-        {'learning_rate': 0.0001, 'lambda_param': 0.001, 'n_iters': 10},
-        {'learning_rate': 0.0005, 'lambda_param': 0.005, 'n_iters': 10},
-        {'learning_rate': 0.001, 'lambda_param': 0.01, 'n_iters': 10},
+        {'learning_rate': 0.0001, 'lambda_param': 0.001, 'n_iters': 150},
+        {'learning_rate': 0.0005, 'lambda_param': 0.005, 'n_iters': 150},
+        {'learning_rate': 0.001, 'lambda_param': 0.01, 'n_iters': 150},
     ]
  
     best_f1 = 0
@@ -350,4 +351,4 @@ def svm_model():
     with open("svm.pkl", "wb") as f:
         pickle.dump(best_model, f)
    
-# svm_model()
+svm_model()
