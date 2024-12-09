@@ -12,6 +12,7 @@ import numpy as np
 from sklearn.model_selection import KFold
 
 
+# Preprocessing for training
 def preprocessing(percentage, kfold):
     file_path='diabetes_binary_health_indicators_BRFSS2015.csv'
     # can be downloaded from here: 
