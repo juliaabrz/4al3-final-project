@@ -6,8 +6,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
-from sklearn.metrics import accuracy_score, recall_score, f1_score # for evaluating
+from sklearn.metrics import accuracy_score, recall_score, f1_score, precision_score # for evaluating
 from torch.utils.data import DataLoader, TensorDataset # for batch training
+import numpy as np
+from sklearn.model_selection import KFold
+
 
 def preprocessing(percentage, kfold):
     file_path='diabetes_binary_health_indicators_BRFSS2015.csv'
@@ -180,7 +183,7 @@ def training_nn(model, train_loader, optimizer, loss_func, X_val_tensor, y_val_t
     plt.legend()
     plt.show()
 
-def neural_network_model() :
+def neural_network_model(X_train, X_test, y_train, y_test) :
     # split training into train and validation-implent kfold cross validation later
     X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42)
 
@@ -211,6 +214,10 @@ def neural_network_model() :
     # train the model
     training_nn(model, train_loader, optimizer, loss_func, X_val_tensor, y_val_tensor)
 
+    model_path = "nn.pkl"
+    torch.save(model, model_path)
+
+# neural_network_model(X_train, X_test, y_train, y_test)
 # svm
 ##############################
 #   Support Vector Machine    #
@@ -256,10 +263,13 @@ class SVM:
 def evaluate_model(y_true, y_pred):
     y_true_binary = np.where(y_true == -1, 0, 1)
     y_pred_binary = np.where(y_pred == -1, 0, 1)
-    return accuracy_score(y_true_binary, y_pred_binary)
+    acc = accuracy_score(y_true_binary, y_pred_binary)
+    recall = recall_score(y_true_binary, y_pred_binary)
+    precision = precision_score(y_true_binary, y_pred_binary)
+    f1 = f1_score(y_true_binary, y_pred_binary)
+    return acc, recall, precision, f1
 
 def svm_model():
-    X_train, X_test, y_train, y_test = pp.preprocessing(percentage=0.5, kfold=False)
 
     X_train = X_train.astype(float).values
     y_train = y_train.astype(int).values
@@ -286,11 +296,3 @@ def svm_model():
 
     final_svm = SVM(learning_rate=0.001, lambda_param=0.01, n_iters=1000)
     final_svm.fit(X_train, y_train)
-
-    with open("model.pkl", "wb") as f:
-        pickle.dump(final_svm, f)
-
-
-# knn
-
-# validation data, and model evaluation during training

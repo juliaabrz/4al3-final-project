@@ -2,6 +2,7 @@ import numpy as np
 import pickle
 from sklearn.metrics import accuracy_score, recall_score, f1_score # for evaluating
 import torch
+from training import diabetes_neural_network, SVM
 
 def evaluate_model(y_true, y_pred):
     y_true_binary = np.where(y_true == -1, 0, 1)
@@ -30,26 +31,26 @@ def evaluating_nn(model, X_test_tensor, y_test_tensor) :
 
 def main():
     # Load model
-    with open("model.pkl", "rb") as f:
-        model = pickle.load(f)
+    with open("svm.pkl", "rb") as f:
+        svm_model = pickle.load(f)
 
     # Load test data
     X_test = np.load("X_test.npy")
     y_test = np.load("y_test.npy")
 
     y_test_converted = np.where(y_test <= 0, -1, 1)
-    y_pred = model.predict(X_test)
+    y_pred = svm_model.predict(X_test)
     acc = evaluate_model(y_test_converted, y_pred)
     print(f"Test Accuracy: {acc*100:.2f}%")
 
     # testing nerual network
-    X_test_tensor = torch.tensor(X_test.values, dtype=torch.float32)
-    y_test_tensor = torch.tensor(y_test.values, dtype=torch.float32).unsqueeze(1)#adding a dimension to the tensor to make it compatible with the model
+    X_test_tensor = torch.tensor(X_test, dtype=torch.float32)
+    y_test_tensor = torch.tensor(y_test, dtype=torch.float32).unsqueeze(1)#adding a dimension to the tensor to make it compatible with the model
 
-    with open("nn.pkl", "rb") as f:
-        nn_model = pickle.load(f)
+    model_path = "nn.pkl"
+    loaded_model = torch.load(model_path)
 
-    evaluating_nn(nn_model, X_test_tensor, y_test_tensor)
+    evaluating_nn(loaded_model, X_test_tensor, y_test_tensor)
 
 if __name__ == "__main__":
     main()

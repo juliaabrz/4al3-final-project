@@ -13,9 +13,6 @@ from torch.utils.data import DataLoader, TensorDataset # for batch training
 from sklearn.metrics import accuracy_score, recall_score, f1_score # for evaluating
 import numpy as np
 
-# add file path so it can access the preprocessing file
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
 import preprocessing as pp # import the preprocessing file
 
 # defining the nn
@@ -167,8 +164,7 @@ def neural_network_model() :
     training_nn(model, train_loader, optimizer, loss_func, X_val_tensor, y_val_tensor)
 
     model_path = "nn.pkl"
-    torch.save(model.state_dict(), model_path)
-    print(f"Model saved as: {model_path}")
+    torch.save(model, model_path)
 
     # evaluate the model
     evaluating_nn(model, X_test_tensor, y_test_tensor)
