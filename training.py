@@ -183,7 +183,7 @@ def training_nn(model, train_loader, optimizer, loss_func, X_val_tensor, y_val_t
     plt.legend()
     plt.show()
 
-def neural_network_model() :
+def neural_network_model(X_train, X_test, y_train, y_test) :
     # split training into train and validation-implent kfold cross validation later
     X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42)
 
@@ -214,6 +214,10 @@ def neural_network_model() :
     # train the model
     training_nn(model, train_loader, optimizer, loss_func, X_val_tensor, y_val_tensor)
 
+    model_path = "nn.pkl"
+    torch.save(model, model_path)
+
+# neural_network_model(X_train, X_test, y_train, y_test)
 # svm
 ##############################
 #   Support Vector Machine    #
