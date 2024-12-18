@@ -12,7 +12,7 @@ import numpy as np
 from sklearn.model_selection import KFold
 import pickle
 
-def preprocessing(percentage, kfold, correlation_threshold=0.1):
+def preprocessing(percentage, kfold):
     file_path='diabetes_binary_health_indicators_BRFSS2015.csv'
     # can be downloaded from here: 
     # Load the dataset
