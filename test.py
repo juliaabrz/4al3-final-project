@@ -47,9 +47,9 @@ def main():
     X_test = np.load("X_test.npy")
     y_test = np.load("y_test.npy")
  
-    y_test_converted = np.where(y_test <= 0, -1, 1)
-    y_pred = svm_model.predict(X_test)
-    evaluate_model(y_test_converted, y_pred)
+    # y_test_converted = np.where(y_test <= 0, -1, 1)
+    # y_pred = svm_model.predict(X_test)
+    # evaluate_model(y_test_converted, y_pred)
  
     # testing neural network
     X_test_tensor = torch.tensor(X_test, dtype=torch.float32)
