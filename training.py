@@ -11,6 +11,7 @@ from torch.utils.data import DataLoader, TensorDataset # for batch training
 import numpy as np
 from sklearn.model_selection import KFold
 import pickle
+from sklearn.metrics import confusion_matrix
 
 def preprocessing(percentage, kfold):
     file_path='diabetes_binary_health_indicators_BRFSS2015.csv'
@@ -115,6 +116,39 @@ class diabetes_neural_network(nn.Module) :
     x = torch.sigmoid(x) # apply sigmoid to get probabilities
     return x
   
+# compute bias on the model
+def compute_bias(model, X_test_tensor, y_test_tensor, sex_data_tensor):
+    # get predictions from the model
+    test_predictions = model(X_test_tensor).squeeze()
+    test_predictions = (test_predictions >= 0.5).float()  # threshold is 0.5
+
+    # extracting male and female masks 
+    male_mask = (sex_data_tensor == 1)  # Mask for male
+    female_mask = (sex_data_tensor == 0)  # Mask for female
+    
+    print("Evaluating bias...")
+    
+    # compute tpr and fpr for males and females
+    subgroup_true = y_test_tensor[male_mask]  # get true labels for female subgroup
+    subgroup_pred = test_predictions[male_mask]  # get predictions for the female subgroup
+    tn, fp, fn, tp = confusion_matrix(subgroup_true, subgroup_pred).ravel()  # computing confusion matrix
+
+    # Calculate TPR (True Positive Rate) and FPR (False Positive Rate)
+    male_tpr = tp / (tp + fn) if (tp + fn) > 0 else 0
+    male_fpr = fp / (fp + tn) if (fp + tn) > 0 else 0
+
+    subgroup_true = y_test_tensor[female_mask]  # get true labels for male subgroup
+    subgroup_pred = test_predictions[female_mask]  # get predictions for the male subgroup
+    tn, fp, fn, tp = confusion_matrix(subgroup_true, subgroup_pred).ravel()  # computing confusion matrix
+
+    # comput tpr and fpr 
+    female_tpr = tp / (tp + fn) if (tp + fn) > 0 else 0
+    female_fpr = fp / (fp + tn) if (fp + tn) > 0 else 0
+
+    # display
+    print(f"Male TPR: {male_tpr:.4f}, Male FPR: {male_fpr:.4f}")
+    print(f"Female TPR: {female_tpr:.4f}, Female FPR: {female_fpr:.4f}")
+    
 average_loss_per_epoch = []
 
 # define the training function
@@ -212,6 +246,10 @@ def neural_network_model(X_train, y_train, k) :
         # Train the model on the current fold
         training_nn(model, train_loader, optimizer, loss_func, X_val_tensor, y_val_tensor, fold, k)
 
+        sex_data_tensor = torch.tensor(X_val_fold['Sex'].values, dtype=torch.float32)  # extract sex for the fold
+
+        compute_bias(model, X_val_tensor, y_val_tensor, sex_data_tensor)
+
     model_path = "nn.pkl"
     torch.save(model, model_path)
 
@@ -226,7 +264,7 @@ def neural_network_model(X_train, y_train, k) :
 
 
 # COMMENT THIS OUT WHEN YOU RUN TEST.PY!!!!!
-# neural_network_model(X_train, y_train, k=5)
+neural_network_model(X_train, y_train, k=5)
 # svm
 ##############################
 #   Support Vector Machine   #
@@ -357,4 +395,4 @@ def svm_model():
     with open("svm.pkl", "wb") as f:
         pickle.dump(best_model, f)
    
-svm_model()
+# svm_model()
