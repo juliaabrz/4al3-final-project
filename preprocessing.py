@@ -17,14 +17,8 @@ def preprocessing(percentage, kfold):
 
     # Separate target and features
     target = 'Diabetes_binary'
-    X = data.drop(columns=[target, 'Stroke'])
+    X = data.drop(columns=[target])
     y = data[target]
-
-    # # correlation analysis commented out for now since still working on it
-    correlations = X.corrwith(y)
-    selected_features = correlations[correlations.abs() > 0.1].index
-    # print("Selected features based on correlation:", selected_features.tolist())
-    # X = X[selected_features]
 
     numerical_columns = ['BMI', 'MentHlth', 'PhysHlth', 'Age', 'Income' , 'Education', 'GenHlth' ] 
     existing_num_cols = []

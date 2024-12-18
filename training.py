@@ -12,8 +12,6 @@ import numpy as np
 from sklearn.model_selection import KFold
 import pickle
 
-
-# Preprocessing for training
 def preprocessing(percentage, kfold):
     file_path='diabetes_binary_health_indicators_BRFSS2015.csv'
     # can be downloaded from here: 
@@ -28,14 +26,8 @@ def preprocessing(percentage, kfold):
 
     # Separate target and features
     target = 'Diabetes_binary'
-    X = data.drop(columns=[target, 'Stroke'])
+    X = data.drop(columns=[target])
     y = data[target]
-
-    # # correlation analysis commented out for now since still working on it
-    correlations = X.corrwith(y)
-    selected_features = correlations[correlations.abs() > 0.1].index
-    # print("Selected features based on correlation:", selected_features.tolist())
-    # X = X[selected_features]
 
     numerical_columns = ['BMI', 'MentHlth', 'PhysHlth', 'Age', 'Income' , 'Education', 'GenHlth' ] 
     existing_num_cols = []
@@ -49,7 +41,6 @@ def preprocessing(percentage, kfold):
 
     # X = data.drop(columns=['Income'])
 
-    
     def balance_classes(X, y):
         # count samples
         class_counts = y.value_counts()
@@ -103,12 +94,10 @@ class diabetes_neural_network(nn.Module) :
     super(diabetes_neural_network, self).__init__()
     # define the fully connected layers
     # play around with these
-    self.fc1 = nn.Linear(features, 256)
-    self.fc2 = nn.Linear(256, 64)
-    self.fc3 = nn.Linear(64, 1)  
-    # self.fc4 = nn.Linear(64, 32)
-    # self.fc5 = nn.Linear(32, 1)# 0 = no diabetes 1 = prediabetes or diabetes
-    self.dropout = nn.Dropout(0.5) # trying regularization
+    self.fc1 = nn.Linear(features, 32)
+    self.fc2 = nn.Linear(32, 16)
+    self.fc3 = nn.Linear(16, 1)  
+    self.dropout = nn.Dropout(0.2) # trying regularization
     
   # define the forward pass of the model
   def forward(self, x) :
@@ -122,27 +111,18 @@ class diabetes_neural_network(nn.Module) :
     x = F.relu(x)
     # fc
     x = self.fc3(x)
-    # relu
-    # x = F.relu(x)
-    # # fc
-    # x = self.fc4(x)
-    # # relu
-    # x = F.relu(x)
-    # # fc
-    # x = self.fc5(x)
-    # # relu
-    # x = F.relu(x)
-    # outputting as a probability
     x = self.dropout(x) # regularization
     x = torch.sigmoid(x) # apply sigmoid to get probabilities
     return x
   
+average_loss_per_epoch = []
+
 # define the training function
-def training_nn(model, train_loader, optimizer, loss_func, X_val_tensor, y_val_tensor) :
-    print("Training model...")
+def training_nn(model, train_loader, optimizer, loss_func, X_val_tensor, y_val_tensor, fold_idx, k) :
+    global average_loss_per_epoch
     training_losses = [] # to store the training losses
     # Run the algorithm for this many iterations
-    EPOCH = 100
+    EPOCH = 150
     for e in range(EPOCH):
         model.train() # sets the model to training mode
         cumulative_loss = 0 # intantiate the cumulative loss
@@ -155,27 +135,37 @@ def training_nn(model, train_loader, optimizer, loss_func, X_val_tensor, y_val_t
            optimizer.step() # perform gradient descent
            cumulative_loss += loss.item() # add the loss to the cumulative loss
 
-        training_losses.append(cumulative_loss / len(train_loader)) # append the average loss for this epoch to the list
+        epoch_loss = cumulative_loss / len(train_loader)  # average loss for the epoch
+        training_losses.append(epoch_loss) # append the average loss for this epoch to the list
 
-        # evaluate on validation set
-        model.eval() # sets the model to evaluation mode
-        with torch.no_grad(): # no gradient computation during evaluation
-            val_outputs = model(X_val_tensor) # predict the probabilities (between 0 and 1)
-            val_predictions = (val_outputs >= 0.5).float() # threshold at 0.5 to get binary predictions
-            y_val_numpy = y_val_tensor.numpy() # convert tensor to numpy array
+        # add the epoch loss to average_loss_per_epoch (initialize if first fold)
+        if len(average_loss_per_epoch) <= e:
+            average_loss_per_epoch.append(epoch_loss)  # first one
+        else:
+            average_loss_per_epoch[e] += epoch_loss  # all the following fold
 
-            # evaluation metrics
-            val_accuracy = accuracy_score(y_val_numpy, val_predictions)
-            val_recall = recall_score(y_val_numpy, val_predictions)
-            val_f1 = f1_score(y_val_numpy, val_predictions)
+    # normalize fold contributions to average at the end of all folds
+    if fold_idx == k - 1:  # If this is the last fold
+        average_loss_per_epoch = [loss / k for loss in average_loss_per_epoch]
 
-        # print the evaluation metrics for every 10th epoch
-        if e % 10 == 0 and e != 0:
-          print("Current epoch:", e)
-          print("\tAvg training loss:", cumulative_loss / len(train_loader))
-          print("\tValidation accuracy:", val_accuracy)
-          print("\tValidation recall:", val_recall)
-          print("\tValidation f1 score:", val_f1)
+    # evaluate on validation set
+    model.eval() # sets the model to evaluation mode
+    with torch.no_grad(): # no gradient computation during evaluation
+        val_outputs = model(X_val_tensor) # predict the probabilities (between 0 and 1)
+        val_predictions = (val_outputs >= 0.5).float() # threshold at 0.5 to get binary predictions
+        y_val_numpy = y_val_tensor.numpy() # convert tensor to numpy array
+
+        # evaluation metrics
+        val_accuracy = accuracy_score(y_val_numpy, val_predictions)
+        val_recall = recall_score(y_val_numpy, val_predictions)
+        val_f1 = f1_score(y_val_numpy, val_predictions)
+
+    # print the evaluation metrics 
+    print("Current epoch:", e)
+    print("\tAvg training loss:", cumulative_loss / len(train_loader))
+    print("\tValidation accuracy:", val_accuracy)
+    print("\tValidation recall:", val_recall)
+    print("\tValidation f1 score:", val_f1)
 
     # plot the validation losses over epochs
     plt.title("Training Loss Across Epochs")
@@ -185,45 +175,61 @@ def training_nn(model, train_loader, optimizer, loss_func, X_val_tensor, y_val_t
     plt.legend()
     plt.show()
 
-def neural_network_model(X_train, X_test, y_train, y_test) :
-    # split training into train and validation-implent kfold cross validation later
-    X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42)
+def neural_network_model(X_train, y_train, k) :
+    global average_loss_per_epoch
+    print("Training model...")
+    kfold = KFold(n_splits=k, shuffle=True, random_state=42) # initializing kfold
+    
+    num_features = X_train.shape[1] # getting num of features
 
-    # convert to tensors
-    X_train_tensor = torch.tensor(X_train.values, dtype=torch.float32)
-    y_train_tensor = torch.tensor(y_train.values, dtype=torch.float32).unsqueeze(1)#adding a dimension to the tensor to make it compatible with the model
-    X_val_tensor = torch.tensor(X_val.values, dtype=torch.float32)
-    y_val_tensor = torch.tensor(y_val.values, dtype=torch.float32).unsqueeze(1)#adding a dimension to the tensor to make it compatible with the model
-    X_test_tensor = torch.tensor(X_test.values, dtype=torch.float32)
-    y_test_tensor = torch.tensor(y_test.values, dtype=torch.float32).unsqueeze(1)#adding a dimension to the tensor to make it compatible with the model
+    for fold, (train_idx, val_idx) in enumerate(kfold.split(X_train)):
+        print("Fold:", fold+1)
+        # Split train and validation data for this fold
+        X_train_fold = X_train.iloc[train_idx]
+        y_train_fold = y_train.iloc[train_idx]
+        X_val_fold = X_train.iloc[val_idx]
+        y_val_fold = y_train.iloc[val_idx]
 
-    # create dataloaders for batch training
-    train_dataset = TensorDataset(X_train_tensor, y_train_tensor)
-    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+        # Convert to tensors
+        X_train_tensor = torch.tensor(X_train_fold.values, dtype=torch.float32)
+        y_train_tensor = torch.tensor(y_train_fold.values, dtype=torch.float32).unsqueeze(1)
+        X_val_tensor = torch.tensor(X_val_fold.values, dtype=torch.float32)
+        y_val_tensor = torch.tensor(y_val_fold.values, dtype=torch.float32).unsqueeze(1)
 
-    # get number of features
-    num_features = X_train_tensor.shape[1]
+        # Create dataloaders for batch training
+        train_dataset = TensorDataset(X_train_tensor, y_train_tensor)
+        train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
 
-    # initialize model with the number of features
-    model = diabetes_neural_network(num_features)
+        # Initialize the model for this fold
+        model = diabetes_neural_network(num_features)
 
-    # define loss function
-    loss_func = nn.BCELoss()
+        # Define loss function
+        loss_func = nn.BCELoss()
 
-    # define optimizer
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+        # Define optimizer
+        optimizer = torch.optim.Adam(model.parameters(), lr=0.1)
 
-    # train the model
-    training_nn(model, train_loader, optimizer, loss_func, X_val_tensor, y_val_tensor)
+        # Train the model on the current fold
+        training_nn(model, train_loader, optimizer, loss_func, X_val_tensor, y_val_tensor, fold, k)
 
     model_path = "nn.pkl"
     torch.save(model, model_path)
 
+    # Plotting average loss after training
+    plt.figure(figsize=(10, 6))
+    plt.title("Average Training Loss Over Epochs Across Folds")
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    plt.plot(range(1, len(average_loss_per_epoch) + 1), average_loss_per_epoch, label="Average Loss")
+    plt.legend()
+    plt.show()
+
+
 # COMMENT THIS OUT WHEN YOU RUN TEST.PY!!!!!
-neural_network_model(X_train, X_test, y_train, y_test)
+# neural_network_model(X_train, y_train, k=5)
 # svm
 ##############################
-#   Support Vector Machine    #
+#   Support Vector Machine   #
 ##############################
 class SVM:
     def __init__(self, learning_rate=0.001, lambda_param=0.01, n_iters=150):
