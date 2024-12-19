@@ -266,7 +266,7 @@ def balance_classes(X, y,up):
 def run_knn_ball_tree():
     x_train, y_train = preprocessing(0.02, True) # get data from preprocessing function, will be doing k fold
 
-    model = KNearestNeighbours(29,x_train, y_train)
+    model = KNearestNeighbours(33,x_train, y_train)
     # classify data
     acc, rec, prec, f1 = model.k_fold_validation(5,True,True,False)
     print ("Average model accuracy:",acc)
@@ -277,7 +277,7 @@ def run_knn_ball_tree():
 
 def run_knn_euclidean():
     x_train, y_train = preprocessing(0.01, True) # get data from preprocessing function, will be doing k fold
-    model = KNearestNeighbours(15,x_train, y_train)
+    model = KNearestNeighbours(33,x_train, y_train)
     # classify data
     acc, rec, prec, f1 = model.k_fold_validation(5, False,True,False)
     print ("Average model accuracy:",acc)
@@ -320,7 +320,7 @@ def run_k_value_experiments():
 def balancing_experiments ():
     x_train, y_train = preprocessing(0.01, True) # get data from preprocessing function, will be doing k fold
 
-    no_balance_model = KNearestNeighbours(15,x_train, y_train)
+    no_balance_model = KNearestNeighbours(33,x_train, y_train)
     acc, rec, prec, f1 = no_balance_model.k_fold_validation(5, True, False, False)
     print ("--------------------------------------------")
     print ("MODEL WITH NO BALANCING")
@@ -329,7 +329,7 @@ def balancing_experiments ():
     print ("Average model precision", prec)
     print ("Average F1 score:",f1)
 
-    upsample_model = KNearestNeighbours(15,x_train, y_train)
+    upsample_model = KNearestNeighbours(33,x_train, y_train)
     acc, rec, prec, f1 = upsample_model.k_fold_validation(5, True, True, True)
     print ("--------------------------------------------")
     print ("MODEL WITH UP SAMPLING")
@@ -338,7 +338,7 @@ def balancing_experiments ():
     print ("Average model precision", prec)
     print ("Average F1 score:",f1)
 
-    downsample_model = KNearestNeighbours(15,x_train, y_train)
+    downsample_model = KNearestNeighbours(33,x_train, y_train)
     acc, rec, prec, f1 = downsample_model.k_fold_validation(5, True, True, False)
     print ("--------------------------------------------")
     print ("MODEL WITH DOWN SAMPLING")
@@ -351,9 +351,9 @@ def run_ball_tree_experiment():
     x_train, y_train = preprocessing(0.02, True) # get data from preprocessing function, will be doing k fold
     # TIME KNN WITHOUT BALL
     start_time = time.time()
-    model_no_ball = KNearestNeighbours(3,x_train, y_train)
+    model_no_ball = KNearestNeighbours(33,x_train, y_train)
     # classify data
-    acc, rec, prec, f1 = model_no_ball.k_fold_validation(15, False,True,False)
+    acc, rec, prec, f1 = model_no_ball.k_fold_validation(5, False,True,False)
     print ("Average model accuracy:",acc)
     print ("Average model recall:",rec)
     print ("Average model precision", prec)
@@ -362,9 +362,9 @@ def run_ball_tree_experiment():
     print ("TIME FOR KNN EUCLIDEAN:",end_time-start_time)
     # TIME KNN WITHOUT BALL
     start_time = time.time()
-    model_ball = KNearestNeighbours(3,x_train, y_train)
+    model_ball = KNearestNeighbours(29,x_train, y_train)
     # classify data
-    acc, rec, prec, f1 = model_ball.k_fold_validation(15, True,True,False)
+    acc, rec, prec, f1 = model_ball.k_fold_validation(33, True,True,False)
     print ("Average model accuracy:",acc)
     print ("Average model recall:",rec)
     print ("Average model precision", prec)
