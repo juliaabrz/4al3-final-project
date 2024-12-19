@@ -4,8 +4,11 @@
 import pandas as pd
 import numpy as np
 import sklearn
+import time
+import matplotlib.pyplot as plt
 from sklearn.metrics import accuracy_score, recall_score, f1_score, precision_score
-from sklearn.model_selection import KFold
+from sklearn.neighbors import BallTree
+from sklearn.model_selection import KFold, StratifiedKFold
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
@@ -41,6 +44,32 @@ class KNearestNeighbours:
         
         return distances
 
+    def find_distances_ball (self,x):
+        ball_tree = BallTree(self.data[:,:self.num_cols])
+        point = [x]
+        distances, indices = ball_tree.query(point, k=self.k)
+        return distances, indices
+        
+
+    def classify_ball(self,x):
+        distances, indices = self.find_distances_ball(x)
+        
+        # get majority of first k classes
+        classes = []
+        for i in indices[0]:
+            #print (i,self.data[i][self.num_cols])
+            classes.append(self.data[i][self.num_cols])
+
+        # get count of 1s and 0s
+        ones = classes.count(1.0)
+        zeros = classes.count(0.0)
+
+        if ones > zeros:
+            return 1.0
+        else:
+            return 0.0
+        
+
     def classify (self,x):
         # get the distances of all data points and their class 
         distances = self.find_distances(x)
@@ -61,14 +90,15 @@ class KNearestNeighbours:
         else:
             return 0.0
 
-    def k_fold_validation (self,k_value):
+    def k_fold_validation (self,k_value,ball, balance, up):
 
         accuracies = []
         recalls = []
         precisions = []
         f1_scores = []
+        self.input,self.target = shuffle(self.input,self.target)
         # use KFold from sklearn to split the data 
-        k_fold_split = KFold(n_splits=k_value,shuffle=True, random_state = 42)
+        k_fold_split = StratifiedKFold(n_splits=k_value,shuffle=True, random_state = 42)
 
         # go through each fold
         for train_index, test_index in k_fold_split.split(self.input,self.target):
@@ -78,13 +108,28 @@ class KNearestNeighbours:
             test_x = self.input[test_index]
             test_y = self.target[test_index]
 
+            # balance the training data so we train on balanced classes
+            if balance:
+                train_x,train_y = balance_classes(train_x, train_y,up)
+            #test_x,test_y = balance_classes(test_x,test_y)
+            # Count the number of samples for each class
+            train_distribution = pd.Series(train_y.reshape(-1)).value_counts()
+            test_distribution = pd.Series(test_y.reshape(-1)).value_counts()
+    
+            #print(f"  Training class distribution: \n{train_distribution}")
+            #print(f"  Testing class distribution: \n{test_distribution}")
+            #print("-" * 50)
+
 
             #concatenate together x and y, last label is classification
             self.data = np.hstack((train_x,train_y))
             
             y_pred = np.empty(test_x.shape[0])
             for d in range (test_x.shape[0]):
-                y_pred[d] = self.classify(test_x[d])
+                if ball:
+                    y_pred[d] = self.classify_ball(test_x[d])
+                else:
+                    y_pred[d] = self.classify(test_x[d])
             
             # evaluate model for each fold
             accuracy = accuracy_score(test_y, y_pred)
@@ -123,9 +168,8 @@ def preprocessing(percentage, kfold):
     # Load the dataset
     data = pd.read_csv(file_path)
     data = shuffle(data)
-
     data = data[:int(len(data)*percentage)] # select the number of samples you want to use
-
+    
     # drop features that have nan
     data = data.dropna()
 
@@ -150,41 +194,11 @@ def preprocessing(percentage, kfold):
     scaler = MinMaxScaler()
     X[existing_num_cols] = scaler.fit_transform(X[existing_num_cols])
 
-    # X = data.drop(columns=['Income'])
-
-    
-    def balance_classes(X, y):
-        # count samples
-        class_counts = y.value_counts()
-        max_count = max(class_counts.values)
-        
-        # X_balanced and y_balanced store the balanced classes
-        X_balanced = []
-        y_balanced = []
-
-        for cls in class_counts.keys():
-            X_class = X[y == cls]
-            y_class = y[y == cls]
-            
-            if class_counts[cls] < max_count:
-                multiplier = max_count // class_counts[cls]
-                remainder = max_count % class_counts[cls]
-                X_upsampled = pd.concat([X_class] * multiplier + [X_class.sample(remainder, replace=True)])
-                y_upsampled = pd.concat([y_class] * multiplier + [y_class.sample(remainder, replace=True)])
-            else:
-                X_upsampled = X_class
-                y_upsampled = y_class
-            
-            X_balanced.append(X_upsampled)
-            y_balanced.append(y_upsampled)
-        
-        X_balanced = pd.concat(X_balanced)
-        y_balanced = pd.concat(y_balanced)
-        return X_balanced, y_balanced
-
-    X_balanced, y_balanced = balance_classes(X, y)
-
+    #X_balanced, y_balanced = balance_classes
     if not kfold:
+        # X = data.drop(columns=['Income'])
+        X_balanced, y_balanced = balance_classes(X, y)
+
         # Split the data into training and testing sets (80/20 split)
         X_train, X_test, y_train, y_test = train_test_split(
             X_balanced, y_balanced, test_size=0.2, random_state=42
@@ -192,18 +206,183 @@ def preprocessing(percentage, kfold):
         return X_train, X_test, y_train, y_test
 
     # if for k fold, we want to return all the data
-    return X_balanced, y_balanced
+    return X, y
 
-def run_knn():
+def balance_classes(X, y,up):
+    #print ("before balancing:",X.shape, y.shape)
+    X = pd.DataFrame(X)
+    y = pd.DataFrame(y)
+    # count samples
+    class_counts = y.value_counts()
+    #unique_vals, counts = np.unique(y,return_counts = True)
+    #class_counts = dict(zip(unique_vals,counts))
 
-    x_train, y_train = preprocessing(0.01, True) # get data from preprocessing function, will be doing k fold
+    #print (class_counts)
+    max_count = max(class_counts.values)
+    min_count = min(class_counts.values)
+    #print (y)
+        
+    # X_balanced and y_balanced store the balanced classes
+    X_balanced = []
+    y_balanced = []
+    for cls in class_counts.keys():
+        #print(cls)
+        X_class = X[y.squeeze() == cls]
+        y_class = y[y.squeeze() == cls]
+        #print(f"Shape of X: {X_class.shape}, Shape of y: {y_class.shape}")
 
-    model = KNearestNeighbours(5,x_train, y_train)
+        # upsampling 
+        if class_counts[cls] < max_count:
+            multiplier = max_count // class_counts[cls]
+            remainder = max_count % class_counts[cls]
+            X_upsampled = pd.concat([X_class] * multiplier + [X_class.sample(remainder, replace=True)])
+            y_upsampled = pd.concat([y_class] * multiplier + [y_class.sample(remainder, replace=True)])
+        else:
+            X_upsampled = X_class
+            y_upsampled = y_class
+            
+        # downsampling 
+        if class_counts[cls] > min_count:
+            # Downsample the majority class to match the minority class size
+            X_downsampled = X_class.sample(min_count, replace=False)  # Sample without replacement
+            y_downsampled = y_class.sample(min_count, replace=False)
+        else:
+            X_downsampled = X_class
+            y_downsampled = y_class
+
+        # append upsampling or downsampling depending on technqiue selected
+        if up:
+            X_balanced.append(X_upsampled)
+            y_balanced.append(y_upsampled)
+        else:
+            X_balanced.append(X_downsampled)
+            y_balanced.append(y_downsampled)
+        
+    X_balanced = pd.concat(X_balanced)
+    y_balanced = pd.concat(y_balanced)
+    #print ("after balancing:",X_balanced.shape,y_balanced.shape)
+    return X_balanced.to_numpy(), y_balanced.to_numpy()
+
+def run_knn_ball_tree():
+    x_train, y_train = preprocessing(0.02, True) # get data from preprocessing function, will be doing k fold
+
+    model = KNearestNeighbours(15,x_train, y_train)
     # classify data
-    acc, rec, prec, f1 = model.k_fold_validation(5)
+    acc, rec, prec, f1 = model.k_fold_validation(5,True,True,False)
     print ("Average model accuracy:",acc)
     print ("Average model recall:",rec)
     print ("Average model precision", prec)
     print ("Average F1 score:",f1)
 
-run_knn()
+
+def run_knn_euclidean():
+    x_train, y_train = preprocessing(0.01, True) # get data from preprocessing function, will be doing k fold
+    model = KNearestNeighbours(15,x_train, y_train)
+    # classify data
+    acc, rec, prec, f1 = model.k_fold_validation(5, False,True,False)
+    print ("Average model accuracy:",acc)
+    print ("Average model recall:",rec)
+    print ("Average model precision", prec)
+    print ("Average F1 score:",f1)
+
+# function that runs experiments with different k values and prints results
+def run_k_value_experiments(set_one):
+    x_train, y_train = preprocessing(0.01, True) # get data from preprocessing function, will be doing k fold
+    print (type(x_train))
+    accuracies = []
+    if set_one:
+        for k in range (5,50,6):
+            start_time = time.time()
+
+            model = KNearestNeighbours(k,x_train, y_train)
+            acc, rec, prec, f1 = model.k_fold_validation(5, True,True,False)
+            print ("Accuracy with k value",k,":",acc)
+            print ("Average model accuracy:",acc)
+            print ("Average model recall:",rec)
+            print ("Average model precision", prec)
+            print ("Average F1 score:",f1)
+            accuracies.append(acc)
+            
+            end_time = time.time()
+            print (end_time-start_time)
+        plt.plot(range(5,50,6), accuracies)
+        plt.show()
+    else:
+        for k in range(3,51,2):
+            start_time = time.time()
+
+            model = KNearestNeighbours(k,x_train, y_train)
+            acc, rec, prec, f1 = model.k_fold_validation(5, True,True,False)
+            print ("Accuracy with k value",k,":",acc)
+            print ("Average model accuracy:",acc)
+            print ("Average model recall:",rec)
+            print ("Average model precision", prec)
+            print ("Average F1 score:",f1)
+            accuracies.append(acc)
+            
+            end_time = time.time()
+            print (end_time-start_time)
+        plt.plot(range(3,51,2), accuracies)
+        plt.show()
+    
+
+# RUN THIS EXPERIMENT TO SEE RESULTS WITH VARYING BALANCING STRATEGIES
+def balancing_experiments ():
+    x_train, y_train = preprocessing(0.01, True) # get data from preprocessing function, will be doing k fold
+
+    no_balance_model = KNearestNeighbours(15,x_train, y_train)
+    acc, rec, prec, f1 = no_balance_model.k_fold_validation(5, True, False, False)
+    print ("--------------------------------------------")
+    print ("MODEL WITH NO BALANCING")
+    print ("Average model accuracy:",acc)
+    print ("Average model recall:",rec)
+    print ("Average model precision", prec)
+    print ("Average F1 score:",f1)
+
+    upsample_model = KNearestNeighbours(15,x_train, y_train)
+    acc, rec, prec, f1 = upsample_model.k_fold_validation(5, True, True, True)
+    print ("--------------------------------------------")
+    print ("MODEL WITH UP SAMPLING")
+    print ("Average model accuracy:",acc)
+    print ("Average model recall:",rec)
+    print ("Average model precision", prec)
+    print ("Average F1 score:",f1)
+
+    downsample_model = KNearestNeighbours(15,x_train, y_train)
+    acc, rec, prec, f1 = downsample_model.k_fold_validation(5, True, True, False)
+    print ("--------------------------------------------")
+    print ("MODEL WITH DOWN SAMPLING")
+    print ("Average model accuracy:",acc)
+    print ("Average model recall:",rec)
+    print ("Average model precision", prec)
+    print ("Average F1 score:",f1)
+
+def run_ball_tree_experiment():
+    x_train, y_train = preprocessing(0.02, True) # get data from preprocessing function, will be doing k fold
+    # TIME KNN WITHOUT BALL
+    start_time = time.time()
+    model_no_ball = KNearestNeighbours(3,x_train, y_train)
+    # classify data
+    acc, rec, prec, f1 = model_no_ball.k_fold_validation(15, False,True,False)
+    print ("Average model accuracy:",acc)
+    print ("Average model recall:",rec)
+    print ("Average model precision", prec)
+    print ("Average F1 score:",f1)
+    end_time = time.time()
+    print ("TIME FOR KNN EUCLIDEAN:",end_time-start_time)
+    # TIME KNN WITHOUT BALL
+    start_time = time.time()
+    model_ball = KNearestNeighbours(3,x_train, y_train)
+    # classify data
+    acc, rec, prec, f1 = model_ball.k_fold_validation(15, True,True,False)
+    print ("Average model accuracy:",acc)
+    print ("Average model recall:",rec)
+    print ("Average model precision", prec)
+    print ("Average F1 score:",f1)
+    end_time = time.time()
+    print ("TIME FOR KNN BALL:",end_time-start_time)
+
+#run_ball_tree_experiment()
+#balancing_experiments()
+run_k_value_experiments(False)
+#run_knn_ball_tree()
