@@ -374,5 +374,5 @@ def run_ball_tree_experiment():
 
 #run_ball_tree_experiment()
 #balancing_experiments()
-run_k_value_experiments()
-#run_knn_ball_tree()
+#run_k_value_experiments()
+run_knn_ball_tree()
