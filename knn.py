@@ -266,7 +266,7 @@ def balance_classes(X, y,up):
 def run_knn_ball_tree():
     x_train, y_train = preprocessing(0.02, True) # get data from preprocessing function, will be doing k fold
 
-    model = KNearestNeighbours(15,x_train, y_train)
+    model = KNearestNeighbours(29,x_train, y_train)
     # classify data
     acc, rec, prec, f1 = model.k_fold_validation(5,True,True,False)
     print ("Average model accuracy:",acc)
@@ -286,44 +286,34 @@ def run_knn_euclidean():
     print ("Average F1 score:",f1)
 
 # function that runs experiments with different k values and prints results
-def run_k_value_experiments(set_one):
-    x_train, y_train = preprocessing(0.01, True) # get data from preprocessing function, will be doing k fold
-    print (type(x_train))
+def run_k_value_experiments():
+    x_train, y_train = preprocessing(0.015, True) # get data from preprocessing function, will be doing k fold
     accuracies = []
-    if set_one:
-        for k in range (5,50,6):
-            start_time = time.time()
+    f1_scores = []
+    recalls = []
+    precisions = []
+    for k in range(3,51,2):
+        start_time = time.time()
 
-            model = KNearestNeighbours(k,x_train, y_train)
-            acc, rec, prec, f1 = model.k_fold_validation(5, True,True,False)
-            print ("Accuracy with k value",k,":",acc)
-            print ("Average model accuracy:",acc)
-            print ("Average model recall:",rec)
-            print ("Average model precision", prec)
-            print ("Average F1 score:",f1)
-            accuracies.append(acc)
-            
-            end_time = time.time()
-            print (end_time-start_time)
-        plt.plot(range(5,50,6), accuracies)
-        plt.show()
-    else:
-        for k in range(3,51,2):
-            start_time = time.time()
-
-            model = KNearestNeighbours(k,x_train, y_train)
-            acc, rec, prec, f1 = model.k_fold_validation(5, True,True,False)
-            print ("Accuracy with k value",k,":",acc)
-            print ("Average model accuracy:",acc)
-            print ("Average model recall:",rec)
-            print ("Average model precision", prec)
-            print ("Average F1 score:",f1)
-            accuracies.append(acc)
-            
-            end_time = time.time()
-            print (end_time-start_time)
-        plt.plot(range(3,51,2), accuracies)
-        plt.show()
+        model = KNearestNeighbours(k,x_train, y_train)
+        acc, rec, prec, f1 = model.k_fold_validation(5, True,True,False)
+        print ("Accuracy with k value",k,":",acc)
+        print ("Average model accuracy:",acc)
+        print ("Average model recall:",rec)
+        print ("Average model precision", prec)
+        print ("Average F1 score:",f1)
+        accuracies.append(acc)     
+        f1_scores.append(f1)
+        recalls.append(rec)
+        precisions.append(prec)       
+        end_time = time.time()
+        print (end_time-start_time)
+    plt.plot(range(3,51,2), accuracies,label="accuracy")
+    plt.plot(range(3,51,2), recalls,label = "recall")
+    plt.plot(range(3,51,2), f1_scores,label = "f1 score")
+    plt.plot(range(3,51,2), precisions,label = "precision")
+    plt.legend()
+    plt.show()
     
 
 # RUN THIS EXPERIMENT TO SEE RESULTS WITH VARYING BALANCING STRATEGIES
@@ -384,5 +374,5 @@ def run_ball_tree_experiment():
 
 #run_ball_tree_experiment()
 #balancing_experiments()
-run_k_value_experiments(False)
+run_k_value_experiments()
 #run_knn_ball_tree()
