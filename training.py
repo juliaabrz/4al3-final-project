@@ -339,7 +339,7 @@ def evaluate_model(y_true, y_pred):
     # print(f"F1 score: {test_f1*100:.1f}%")
     return test_acc, test_recall, test_precision, test_f1
  
-def svm_model():
+def train_svm_model():
     X, y = preprocessing(percentage=0.01, kfold=True)
     X = np.asarray(X, dtype=float)
     y = np.asarray(y, dtype=int)
