@@ -6,7 +6,7 @@ import numpy as np
 import sklearn
 import time
 import matplotlib.pyplot as plt
-from sklearn.metrics import accuracy_score, recall_score, f1_score, precision_score
+from sklearn.metrics import accuracy_score, recall_score, f1_score, precision_score, confusion_matrix
 from sklearn.neighbors import BallTree
 from sklearn.model_selection import KFold, StratifiedKFold
 from sklearn.preprocessing import MinMaxScaler
@@ -21,8 +21,12 @@ class KNearestNeighbours:
     def __init__(self, k, input, target):
         # get data from preprocessing
         self.k = k
-        # drop sensitive data 
-        drop_cols = ['Education','Income','Sex','MentHlth']
+
+        # drop sensitive data but save sex for bias
+        
+        self.sex = input['Sex']
+        self.sex.reset_index(drop=True,inplace=True)
+        drop_cols = ['Education','Income','MentHlth']
         input = input.drop(columns = drop_cols)
         print ("Shape of data used", input.shape)
         # determine the number of features (-1) for later on
@@ -30,6 +34,7 @@ class KNearestNeighbours:
         self.input = np.array(input)
         self.target = np.array(target)
         self.target = self.target.reshape(-1,1)
+        
 
     def euclidean_distance (self, x1, x2): # calculates the euclidean distance
         return np.sqrt(np.sum(np.square(x1-x2)))
@@ -90,12 +95,16 @@ class KNearestNeighbours:
         else:
             return 0.0
 
-    def k_fold_validation (self,k_value,ball, balance, up):
+    def k_fold_validation (self,k_value,ball, balance, up,bias=False):
 
         accuracies = []
         recalls = []
         precisions = []
         f1_scores = []
+        male_tprs = []
+        male_fprs = []
+        female_tprs = []
+        female_fprs = []
         self.input,self.target = shuffle(self.input,self.target)
         # use KFold from sklearn to split the data 
         k_fold_split = StratifiedKFold(n_splits=k_value,shuffle=True, random_state = 42)
@@ -133,23 +142,37 @@ class KNearestNeighbours:
             
             # evaluate model for each fold
             accuracy = accuracy_score(test_y, y_pred)
-            #print ("Model accuracy:",accuracy)
-
             recall = recall_score(test_y,y_pred)
-            #print ("Model recall:",recall)
-
             precision = precision_score(test_y,y_pred)
-            #print ("Model precision", precision)
-
             f1 = f1_score(test_y,y_pred)
-            #print ("F1 score:",f1)
 
             accuracies.append(accuracy)
             recalls.append(recall)
             precisions.append(precision)
             f1_scores.append(f1)
-        
 
+            # compute bias for this fold
+            if bias:
+                male_mask = (self.sex[test_index] == 1)
+                female_mask = (self.sex[test_index] == 0)
+
+                male_true = test_y[male_mask]
+                male_pred = y_pred[male_mask]
+                tn, fp, fn, tp = confusion_matrix(male_true, male_pred).ravel()
+                male_tpr = tp / (tp + fn) if (tp + fn) > 0 else 0 #comput tpr
+                male_fpr = fp / (fp + tn) if (fp + tn) > 0 else 0 #compute fpr
+
+                 # computing tpr and fpr for females
+                female_true = test_y[female_mask]  # true labels for females
+                female_pred = y_pred[female_mask]  # predictions for females
+                tn, fp, fn, tp = confusion_matrix(female_true, female_pred).ravel()
+                female_tpr = tp / (tp + fn) if (tp + fn) > 0 else 0 #comput tpr
+                female_fpr = fp / (fp + tn) if (fp + tn) > 0 else 0 # comput fpr
+
+                female_fprs.append(female_fpr)
+                female_tprs.append(female_tpr)
+                male_fprs.append(male_fpr)
+                male_tprs.append(male_tpr)
         # convert arrays to np arrays for easy calculation of mean scores
         accuracies = np.array(accuracies)
         average_acc = np.mean(accuracies,axis=0)
@@ -160,7 +183,21 @@ class KNearestNeighbours:
         precisions = np.array(precisions)
         average_pre = np.mean(precisions, axis=0)
 
+        if bias:
+            female_fprs=np.array(female_fprs)
+            female_tprs = np.array(female_tprs)
+            male_fprs = np.array(male_fprs)
+            male_tprs = np.array(male_tprs)
+            avg_m_fp = np.mean(male_fprs)
+            avg_m_tp = np.mean(male_tprs)
+            avg_f_fp = np.mean(female_fprs)
+            avg_f_tp = np.mean(female_tprs)
+            print(f"Male TPR: {avg_m_tp:.4f}, Male FPR: {avg_m_fp:.4f}")
+            print(f"Female TPR: {avg_f_tp:.4f}, Female FPR: {avg_f_fp:.4f}")
+            
+
         return (average_acc,average_rec,average_pre,average_f1)
+    
 
 # preprocessing function is in this file for the sake of submission
 def preprocessing(percentage, kfold):
@@ -268,7 +305,7 @@ def run_knn_ball_tree():
 
     model = KNearestNeighbours(33,x_train, y_train)
     # classify data
-    acc, rec, prec, f1 = model.k_fold_validation(5,True,True,False)
+    acc, rec, prec, f1 = model.k_fold_validation(5,True,True,False,True)
     print ("Average model accuracy:",acc)
     print ("Average model recall:",rec)
     print ("Average model precision", prec)
@@ -371,6 +408,7 @@ def run_ball_tree_experiment():
     print ("Average F1 score:",f1)
     end_time = time.time()
     print ("TIME FOR KNN BALL:",end_time-start_time)
+
 
 #run_ball_tree_experiment()
 #balancing_experiments()
