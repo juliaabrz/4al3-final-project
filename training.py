@@ -233,6 +233,7 @@ def neural_network_model(X_train, y_train, k) :
 ##############################
 #   Support Vector Machine   #
 ##############################
+
 class SVM:
     def __init__(self, learning_rate=0.001, lambda_param=0.01, n_iters=150):
         self.lr = learning_rate
@@ -461,4 +462,5 @@ def train_svm_model():
     with open("svm.pkl", "wb") as f:
         pickle.dump(best_model, f)
 
-train_svm_model()
+#train_svm_model()
+
