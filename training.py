@@ -13,7 +13,8 @@ from sklearn.model_selection import KFold
 import pickle
 from sklearn.metrics import confusion_matrix
 
-def preprocessing(percentage, kfold):
+# percentage is how much of data is used for testing. appropriate locations have been updated with the correct preprocessing signature.
+def preprocessing(percentage, kfold, corr_threshold=0.1, model='svm'):
     file_path='diabetes_binary_health_indicators_BRFSS2015.csv'
     # can be downloaded from here: 
     # Load the dataset
@@ -84,7 +85,7 @@ def preprocessing(percentage, kfold):
     return X_balanced, y_balanced
 
 # loading training data + pre-processing
-X_train, X_test, y_train, y_test = preprocessing(0.1, False)
+X_train, X_test, y_train, y_test = preprocessing(0.001, False, corr_threshold=0.1, model='nn')
 
 # training model
 ##############################
@@ -228,7 +229,7 @@ def neural_network_model(X_train, y_train, k) :
 
 
 # COMMENT THIS OUT WHEN YOU RUN TEST.PY!!!!!
-# neural_network_model(X_train, y_train, k=5)
+neural_network_model(X_train, y_train, k=5)
 # svm
 ##############################
 #   Support Vector Machine   #
@@ -379,7 +380,7 @@ def evaluate_model(y_true, y_pred):
     return test_acc, test_recall, test_precision, test_f1
 
 def train_svm_model():
-    X, y = preprocessing(percentage=0.001, kfold=True)
+    X, y = preprocessing(percentage=0.05, kfold=True, corr_threshold=0.1, model='svm')
     X = np.asarray(X, dtype=float)
     y = np.asarray(y, dtype=int)
 
@@ -422,9 +423,9 @@ def train_svm_model():
     print(f"K = {best_k}, Params = {best_params}")
     print(best_params)
     print(f"Best Average Validation F1 Score: {best_f1*100:.2f}%\n")
- 
-    X_train_full, X_test, y_train_full, y_test = preprocessing(percentage=0.01, kfold=False)
-    sex_data = X_test['Sex'].values
+
+    X_train_full, X_test, y_train_full, y_test = preprocessing(percentage=0.02, kfold=False, corr_threshold=0.1, model='svm')
+    sex_data = X_test['Sex'].values # can be changed to check the bias from a particular column
     X_train_full = np.asarray(X_train_full, dtype=float)
     y_train_full = np.asarray(y_train_full, dtype=int)
     X_test1 = X_test
@@ -462,5 +463,5 @@ def train_svm_model():
     with open("svm.pkl", "wb") as f:
         pickle.dump(best_model, f)
 
-#train_svm_model()
+# train_svm_model()
 
