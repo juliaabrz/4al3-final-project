@@ -19,7 +19,7 @@ def preprocessing(percentage, kfold, corr_threshold=0.1, model='svm'):
     # can be downloaded from here: 
     # Load the dataset
     data = pd.read_csv(file_path)
-    data = shuffle(data)
+    data = shuffle(data, random_state=42) 
 
     data = data[:int(len(data)*percentage)] # select the number of samples you want to use
 
@@ -54,7 +54,7 @@ def preprocessing(percentage, kfold, corr_threshold=0.1, model='svm'):
     else:
         scaler = MinMaxScaler()
         X[existing_num_cols] = scaler.fit_transform(X[existing_num_cols])
-  
+
     def balance_classes(X, y):
         # count samples
         class_counts = y.value_counts()
@@ -65,9 +65,12 @@ def preprocessing(percentage, kfold, corr_threshold=0.1, model='svm'):
         y_balanced = []
 
         for cls in class_counts.keys():
-            X_class = X[y == cls]
-            y_class = y[y == cls]
+            # X_class = X[y == cls]
+            # y_class = y[y == cls]
             
+            X_class = X.loc[y.index[y == cls]]
+            y_class = y.loc[y.index[y == cls]]
+
             if class_counts[cls] < max_count:
                 multiplier = max_count // class_counts[cls]
                 remainder = max_count % class_counts[cls]
@@ -392,7 +395,7 @@ def evaluate_model(y_true, y_pred):
     return test_acc, test_recall, test_precision, test_f1
 
 def train_svm_model():
-    X, y = preprocessing(percentage=0.001, kfold=True, corr_threshold=0.1, model='svm')
+    X, y = preprocessing(percentage=0.05, kfold=True, corr_threshold=0.1, model='svm')
     X = np.asarray(X, dtype=float)
     y = np.asarray(y, dtype=int)
 
