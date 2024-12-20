@@ -31,6 +31,8 @@ def preprocessing(percentage, kfold, corr_threshold=0.1, model='svm'):
     X = data.drop(columns=[target])
     y = data[target]
 
+    sex_column = X['Sex']
+
     # Compute correlations with the target
     if model == 'svm':
         correlations = X.corrwith(y)
@@ -48,6 +50,7 @@ def preprocessing(percentage, kfold, corr_threshold=0.1, model='svm'):
         scaler = StandardScaler()
         X[existing_num_cols] = scaler.fit_transform(X[existing_num_cols])
         X = X[selected_features]
+        X['Sex'] = sex_column
     else:
         scaler = MinMaxScaler()
         X[existing_num_cols] = scaler.fit_transform(X[existing_num_cols])
@@ -238,7 +241,7 @@ def neural_network_model(X_train, y_train, k) :
 
 
 # COMMENT THIS OUT WHEN YOU RUN TEST.PY!!!!!
-neural_network_model(X_train, y_train, k=5)
+# neural_network_model(X_train, y_train, k=5)
 # svm
 ##############################
 #   Support Vector Machine   #
@@ -389,7 +392,7 @@ def evaluate_model(y_true, y_pred):
     return test_acc, test_recall, test_precision, test_f1
 
 def train_svm_model():
-    X, y = preprocessing(percentage=0.05, kfold=True, corr_threshold=0.1, model='svm')
+    X, y = preprocessing(percentage=0.001, kfold=True, corr_threshold=0.1, model='svm')
     X = np.asarray(X, dtype=float)
     y = np.asarray(y, dtype=int)
 
@@ -433,7 +436,7 @@ def train_svm_model():
     print(best_params)
     print(f"Best Average Validation F1 Score: {best_f1*100:.2f}%\n")
 
-    X_train_full, X_test, y_train_full, y_test = preprocessing(percentage=0.02, kfold=False, corr_threshold=0.1, model='svm')
+    X_train_full, X_test, y_train_full, y_test = preprocessing(percentage=0.001, kfold=False, corr_threshold=0.1, model='svm')
     sex_data = X_test['Sex'].values # can be changed to check the bias from a particular column
     X_train_full = np.asarray(X_train_full, dtype=float)
     y_train_full = np.asarray(y_train_full, dtype=int)
@@ -472,5 +475,6 @@ def train_svm_model():
     with open("svm.pkl", "wb") as f:
         pickle.dump(best_model, f)
 
-# train_svm_model()
+# COMMENT THIS OUT WHEN YOU RUN OTHER MODELS
+train_svm_model()
 
