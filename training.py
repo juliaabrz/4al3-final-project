@@ -233,6 +233,133 @@ def neural_network_model(X_train, y_train, k) :
 ##############################
 #   Support Vector Machine   #
 ##############################
+# class SVM:
+#     def __init__(self, learning_rate=0.001, lambda_param=0.01, n_iters=150):
+#         self.lr = learning_rate
+#         self.lambda_param = lambda_param
+#         self.n_iters = n_iters
+#         self.w = None
+#         self.b = None
+ 
+#     def initialize_weights(self, n_features):
+#         self.w = np.zeros(n_features)
+#         self.b = 0.0
+ 
+#     def compute_loss(self, x_i, y_i):
+#         return max(0, 1 - y_i * (x_i.dot(self.w) + self.b))
+ 
+#     def fit(self, X, y, X_val=None, y_val=None, print_epochs=None):
+#         X = np.asarray(X, dtype=float)
+#         y = np.asarray(y, dtype=int)
+#         y_ = np.where(y <= 0, -1, 1)
+ 
+#         n_samples, n_features = X.shape
+#         self.initialize_weights(n_features)
+ 
+#         if print_epochs is None:
+#             print_epochs = []
+ 
+#         for epoch in range(1, self.n_iters + 1):
+#             epoch_loss = 0
+#             for idx in range(n_samples):
+#                 x_i = X[idx]
+#                 y_i = y_[idx]
+#                 condition = y_i * (x_i.dot(self.w) + self.b) >= 1
+#                 if condition:
+#                     self.w -= self.lr * (2 * self.lambda_param * self.w)
+#                 else:
+#                     self.w -= self.lr * (2 * self.lambda_param * self.w - x_i * y_i)
+#                     self.b -= self.lr * y_i
+#                 loss = self.compute_loss(x_i, y_i)
+#                 epoch_loss += loss
+#             avg_loss = epoch_loss / n_samples
+ 
+#             if epoch in print_epochs:
+#                 if X_val is not None and y_val is not None:
+#                     y_val_pred = self.predict(X_val)
+#                     acc, recall, precision, f1 = evaluate_model(y_val, y_val_pred)
+#                     # print(f"Epoch: {epoch}")
+#                     # print(f"\tAvg training loss: {avg_loss*100:.1f}%")
+#                     # print(f"\tValidation accuracy: {acc*100:.1f}%")
+#                     # print(f"\tValidation recall: {recall*100:.1f}%")
+#                     # print(f"\tValidation precision: {precision*100:.1f}%")
+#                     # print(f"\tValidation F1 score: {f1*100:.1f}%")
+ 
+#     def predict(self, X):
+#         X = np.asarray(X, dtype=float)
+#         return np.sign(X.dot(self.w) + self.b)
+ 
+# def evaluate_model(y_true, y_pred):
+#     y_true_binary = np.where(y_true == -1, 0, 1)
+#     y_pred_binary = np.where(y_pred == -1, 0, 1)
+#     test_acc = accuracy_score(y_true_binary, y_pred_binary)
+#     test_recall = recall_score(y_true_binary, y_pred_binary)
+#     test_precision = precision_score(y_true_binary, y_pred_binary)
+#     test_f1 = f1_score(y_true_binary, y_pred_binary)
+#     # print("Final results:")
+#     # print(f"Accuracy: {test_acc*100:.1f}%")
+#     # print(f"Recall: {test_recall*100:.1f}%")
+#     # print(f"Precision: {test_precision*100:.1f}%")
+#     # print(f"F1 score: {test_f1*100:.1f}%")
+#     return test_acc, test_recall, test_precision, test_f1
+ 
+# def train_svm_model():
+#     X, y = preprocessing(percentage=0.01, kfold=True)
+#     X = np.asarray(X, dtype=float)
+#     y = np.asarray(y, dtype=int)
+ 
+#     hyperparams = [
+#         {'learning_rate': 0.0001, 'lambda_param': 0.001, 'n_iters': 150},
+#         {'learning_rate': 0.0005, 'lambda_param': 0.005, 'n_iters': 150},
+#         {'learning_rate': 0.001, 'lambda_param': 0.01, 'n_iters': 150},
+#     ]
+ 
+#     best_f1 = 0
+#     best_params = {}
+#     best_model = None
+ 
+#     for params in hyperparams:
+#         svm = SVM(learning_rate=params['learning_rate'], lambda_param=params['lambda_param'], n_iters=params['n_iters'])
+#         k = 5
+#         kf = KFold(n_splits=k, shuffle=True, random_state=42)
+#         fold_f1s = []
+#         for fold, (train_idx, val_idx) in enumerate(kf.split(X, y), 1):
+#             X_tr, X_val = X[train_idx], X[val_idx]
+#             y_tr, y_val = y[train_idx], y[val_idx]
+#             svm.fit(X_tr, y_tr, X_val, y_val, print_epochs=[2])
+#             y_val_pred = svm.predict(X_val)
+#             _, _, _, f1 = evaluate_model(y_val, y_val_pred)
+#             fold_f1s.append(f1)
+#         avg_f1 = np.mean(fold_f1s)
+#         if avg_f1 > best_f1:
+#             best_f1 = avg_f1
+#             best_params = params
+#             best_model = svm
+ 
+#     print("Best Hyperparameters:")
+#     print(best_params)
+#     print(f"Best Average Validation F1 Score: {best_f1*100:.2f}%\n")
+ 
+#     X_train_full, X_test, y_train_full, y_test = preprocessing(percentage=0.01, kfold=False)
+#     X_train_full = np.asarray(X_train_full, dtype=float)
+#     y_train_full = np.asarray(y_train_full, dtype=int)
+#     X_test = np.asarray(X_test, dtype=float)
+#     y_test = np.asarray(y_test, dtype=int)
+ 
+#     best_model.fit(X_train_full, y_train_full, print_epochs=[10, 90])
+#     y_test_pred = best_model.predict(X_test)
+#     # test_acc, test_recall, test_precision, test_f1 = evaluate_model(y_test, y_test_pred)
+#     # print("Final results:")
+#     # print(f"Accuracy: {test_acc*100:.1f}%")
+#     # print(f"Recall: {test_recall*100:.1f}%")
+#     # print(f"Precision: {test_precision*100:.1f}%")
+#     # print(f"F1 score: {test_f1*100:.1f}%")
+   
+ 
+#     with open("svm.pkl", "wb") as f:
+#         pickle.dump(best_model, f)
+
+
 class SVM:
     def __init__(self, learning_rate=0.001, lambda_param=0.01, n_iters=150):
         self.lr = learning_rate
@@ -240,58 +367,132 @@ class SVM:
         self.n_iters = n_iters
         self.w = None
         self.b = None
- 
+        self.training_losses = []
+
     def initialize_weights(self, n_features):
         self.w = np.zeros(n_features)
         self.b = 0.0
- 
-    def compute_loss(self, x_i, y_i):
-        return max(0, 1 - y_i * (x_i.dot(self.w) + self.b))
- 
-    def fit(self, X, y, X_val=None, y_val=None, print_epochs=None):
+
+    def compute_loss(self, X, y):
+        margins = 1 - y * (X.dot(self.w) + self.b)  # Hinge loss margins
+        hinge_loss = np.maximum(0, margins).mean()  # Mean hinge loss
+        reg_loss = self.lambda_param * np.sum(self.w**2)  # Regularization term
+        return hinge_loss + reg_loss
+
+        # margins = 1 - y_i * (x_i.dot(self.w) + self.b)  # Compute margins
+        # losses = np.maximum(0, margins)  # Element-wise max with 0
+        # if isinstance(losses, np.ndarray):  # Handle case for multiple samples
+        #     return np.mean(losses)
+        # return losses  # For a single sample
+
+
+        # return max(0, 1 - y_i * (x_i.dot(self.w) + self.b))
+
+    def fit(self, X, y, X_val=None, y_val=None, print_epochs=None, fold_idx=0, total_folds=1):
+        self.training_losses = []  # Initialize empty list for losses
         X = np.asarray(X, dtype=float)
         y = np.asarray(y, dtype=int)
-        y_ = np.where(y <= 0, -1, 1)
- 
+        y_ = np.where(y <= 0, -1, 1)  # Convert labels to {-1, 1}
+        
         n_samples, n_features = X.shape
         self.initialize_weights(n_features)
- 
+
         if print_epochs is None:
             print_epochs = []
- 
+
         for epoch in range(1, self.n_iters + 1):
-            epoch_loss = 0
+            epoch_loss = 0  # set to 0 to track cumulative loss for the epoch
+
             for idx in range(n_samples):
                 x_i = X[idx]
                 y_i = y_[idx]
-                condition = y_i * (x_i.dot(self.w) + self.b) >= 1
+
+                # Check condition for hinge loss
+                condition = y_i * (x_i.dot(self.w) + self.b) < 1
+
+                # Update weights and bias
                 if condition:
-                    self.w -= self.lr * (2 * self.lambda_param * self.w)
+                    grad_w = 2 * self.lambda_param * self.w - y_i * x_i
+                    grad_b = -y_i
                 else:
-                    self.w -= self.lr * (2 * self.lambda_param * self.w - x_i * y_i)
-                    self.b -= self.lr * y_i
-                loss = self.compute_loss(x_i, y_i)
-                epoch_loss += loss
+                    grad_w = 2 * self.lambda_param * self.w
+                    grad_b = 0
+
+                self.w -= self.lr * grad_w
+                self.b -= self.lr * grad_b
+
+                # Accumulate loss for the current instance
+                instance_loss = max(0, 1 - y_i * (x_i.dot(self.w) + self.b))
+                epoch_loss += instance_loss
+
+            # Calculate and store average loss for the epoch
             avg_loss = epoch_loss / n_samples
- 
-            if epoch in print_epochs:
-                if X_val is not None and y_val is not None:
-                    y_val_pred = self.predict(X_val)
-                    acc, recall, precision, f1 = evaluate_model(y_val, y_val_pred)
-                    # print(f"Epoch: {epoch}")
-                    # print(f"\tAvg training loss: {avg_loss*100:.1f}%")
-                    # print(f"\tValidation accuracy: {acc*100:.1f}%")
-                    # print(f"\tValidation recall: {recall*100:.1f}%")
-                    # print(f"\tValidation precision: {precision*100:.1f}%")
-                    # print(f"\tValidation F1 score: {f1*100:.1f}%")
- 
+            self.training_losses.append(avg_loss)
+
+            # Optionally print metrics for specified epochs
+            if epoch in print_epochs and fold_idx == total_folds - 1 and X_val is not None and y_val is not None:
+                y_val_pred = self.predict(X_val)
+                acc, recall, precision, f1 = evaluate_model(y_val, y_val_pred)
+                print(f"Epoch: {epoch}")
+                print(f"Training Loss: {avg_loss:.4f}")
+                print(f"Validation Accuracy: {acc*100:.2f}%")
+                print(f"Validation Recall: {recall*100:.2f}%")
+                print(f"Validation Precision: {precision*100:.2f}%")
+                print(f"Validation F1 Score: {f1*100:.2f}%")
+
+
+        acc, recall, precision, f1 = 0, 0, 0, 0
+        if X_val is not None and y_val is not None:
+            y_val_pred = self.predict(X_val)
+            acc, recall, precision, f1 = evaluate_model(y_val, y_val_pred)
+
+        return acc, recall, precision, f1
+    
+           
     def predict(self, X):
         X = np.asarray(X, dtype=float)
         return np.sign(X.dot(self.w) + self.b)
- 
+
+def compute_bias_svm(model, X_test, y_test, sex_data):
+
+    # 1. Get model predictions for test set
+    y_pred = model.predict(X_test)  # y_pred will be {-1,1}, we need to convert to {0,1}
+    
+    # Convert predictions from {-1,1} to {0,1} to match y_test format
+    y_pred_binary = np.where(y_pred == 1, 1, 0)
+
+    # 2. Create masks for the subgroups: male and female
+    male_mask = (sex_data == 1)
+    female_mask = (sex_data == 0)
+
+    # 3. Compute confusion matrices for each subgroup
+    # Subgroup: Male
+    y_true_male = y_test[male_mask]
+    y_pred_male = y_pred_binary[male_mask]
+    tn_m, fp_m, fn_m, tp_m = confusion_matrix(y_true_male, y_pred_male).ravel()
+
+    # Subgroup: Female
+    y_true_female = y_test[female_mask]
+    y_pred_female = y_pred_binary[female_mask]
+    tn_f, fp_f, fn_f, tp_f = confusion_matrix(y_true_female, y_pred_female).ravel()
+
+    # 4. Compute TPR/FPR for each subgroup
+    # TPR = TP/(TP+FN), FPR = FP/(FP+TN)
+    male_tpr = tp_m / (tp_m + fn_m) if (tp_m + fn_m) > 0 else 0
+    male_fpr = fp_m / (fp_m + tn_m) if (fp_m + tn_m) > 0 else 0
+
+    female_tpr = tp_f / (tp_f + fn_f) if (tp_f + fn_f) > 0 else 0
+    female_fpr = fp_f / (fp_f + tn_f) if (fp_f + tn_f) > 0 else 0
+
+    # 5. Print the results
+    print("Evaluating bias for SVM model...")
+    print(f"Male TPR: {male_tpr:.4f}, Male FPR: {male_fpr:.4f}")
+    print(f"Female TPR: {female_tpr:.4f}, Female FPR: {female_fpr:.4f}")
+
 def evaluate_model(y_true, y_pred):
-    y_true_binary = np.where(y_true == -1, 0, 1)
-    y_pred_binary = np.where(y_pred == -1, 0, 1)
+    # y_true_binary = np.where(y_true == -1, 0, 1)
+    y_pred_binary = np.where(y_pred == 1, 1, 0)
+    y_true_binary = y_true
     test_acc = accuracy_score(y_true_binary, y_pred_binary)
     test_recall = recall_score(y_true_binary, y_pred_binary)
     test_precision = precision_score(y_true_binary, y_pred_binary)
@@ -302,61 +503,92 @@ def evaluate_model(y_true, y_pred):
     # print(f"Precision: {test_precision*100:.1f}%")
     # print(f"F1 score: {test_f1*100:.1f}%")
     return test_acc, test_recall, test_precision, test_f1
- 
+
 def train_svm_model():
-    X, y = preprocessing(percentage=0.01, kfold=True)
+    X, y = preprocessing(percentage=0.001, kfold=True)
     X = np.asarray(X, dtype=float)
     y = np.asarray(y, dtype=int)
- 
+
     hyperparams = [
-        {'learning_rate': 0.0001, 'lambda_param': 0.001, 'n_iters': 150},
-        {'learning_rate': 0.0005, 'lambda_param': 0.005, 'n_iters': 150},
-        {'learning_rate': 0.001, 'lambda_param': 0.01, 'n_iters': 150},
+        # {'learning_rate': 0.0001, 'lambda_param': 0.001, 'n_iters': 150},
+        {'learning_rate': 0.0001, 'lambda_param': 0.005, 'n_iters': 201},
+        # {'learning_rate': 0.01, 'lambda_param': 0.01, 'n_iters': 150},
+        # {'learning_rate': 0.1, 'lambda_param': 0.1, 'n_iters': 150},
     ]
  
     best_f1 = 0
     best_params = {}
+    best_k = None
     best_model = None
- 
+
+    # k_values = range(2,15)
+    # for k in k_values:
     for params in hyperparams:
         svm = SVM(learning_rate=params['learning_rate'], lambda_param=params['lambda_param'], n_iters=params['n_iters'])
-        k = 5
+        k = 8
         kf = KFold(n_splits=k, shuffle=True, random_state=42)
-        fold_f1s = []
+        fold_metrics = []
         for fold, (train_idx, val_idx) in enumerate(kf.split(X, y), 1):
             X_tr, X_val = X[train_idx], X[val_idx]
             y_tr, y_val = y[train_idx], y[val_idx]
-            svm.fit(X_tr, y_tr, X_val, y_val, print_epochs=[2])
-            y_val_pred = svm.predict(X_val)
-            _, _, _, f1 = evaluate_model(y_val, y_val_pred)
-            fold_f1s.append(f1)
-        avg_f1 = np.mean(fold_f1s)
-        if avg_f1 > best_f1:
+            acc, recall, precision, f1 = svm.fit(X_tr, y_tr, X_val, y_val, print_epochs=[10, 90, 200], fold_idx=fold-1, total_folds=k)
+            fold_metrics.append((acc, recall, precision, f1))
+
+        avg_acc = np.mean([m[0] for m in fold_metrics])
+        avg_recall = np.mean([m[1] for m in fold_metrics])
+        avg_precision = np.mean([m[2] for m in fold_metrics])
+        avg_f1 = np.mean([m[3] for m in fold_metrics])
+        if avg_f1 > best_f1:        # checking for best hyperparameter
             best_f1 = avg_f1
             best_params = params
+            best_k = k
             best_model = svm
- 
+
     print("Best Hyperparameters:")
+    print(f"K = {best_k}, Params = {best_params}")
     print(best_params)
     print(f"Best Average Validation F1 Score: {best_f1*100:.2f}%\n")
  
     X_train_full, X_test, y_train_full, y_test = preprocessing(percentage=0.01, kfold=False)
+    sex_data = X_test['Sex'].values
     X_train_full = np.asarray(X_train_full, dtype=float)
     y_train_full = np.asarray(y_train_full, dtype=int)
+    X_test1 = X_test
+    Y_test1 = y_test 
     X_test = np.asarray(X_test, dtype=float)
     y_test = np.asarray(y_test, dtype=int)
  
-    best_model.fit(X_train_full, y_train_full, print_epochs=[10, 90])
+    # best_model.fit(X_train_full, y_train_full, print_epochs=[2])
+    final_acc, final_recall, final_precision, final_f1 = best_model.fit(X_train_full, y_train_full)
+    final_training_loss = best_model.training_losses[-1] if best_model.training_losses else None
+
+    print("Final Results on Test Set after all epochs:")
     y_test_pred = best_model.predict(X_test)
-    # test_acc, test_recall, test_precision, test_f1 = evaluate_model(y_test, y_test_pred)
-    # print("Final results:")
-    # print(f"Accuracy: {test_acc*100:.1f}%")
-    # print(f"Recall: {test_recall*100:.1f}%")
-    # print(f"Precision: {test_precision*100:.1f}%")
-    # print(f"F1 score: {test_f1*100:.1f}%")
+    test_acc, test_recall, test_precision, test_f1 = evaluate_model(y_test, y_test_pred)
+    print(f"Final Training Loss: {final_training_loss:.4f}")
+    print(f"Accuracy: {test_acc*100:.1f}%")
+    print(f"Recall: {test_recall*100:.1f}%")
+    print(f"Precision: {test_precision*100:.1f}%")
+    print(f"F1 score: {test_f1*100:.1f}%")
+
+
+
    
- 
+    compute_bias_svm(best_model, X_test1.values, Y_test1.values, sex_data)
+
+    # Plot training loss over epochs for final chosen model
+    plt.figure(figsize=(8,5))
+    plt.title("SVM Training Loss Over Epochs")
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    plt.plot(range(1, len(best_model.training_losses) + 1), best_model.training_losses, label="Training Loss")
+    plt.legend()
+    plt.show()
+
     with open("svm.pkl", "wb") as f:
         pickle.dump(best_model, f)
    
+
+train_svm_model()
+
 # svm_model()
