@@ -19,7 +19,7 @@ def preprocessing(percentage, kfold, corr_threshold=0.1, model='svm'):
     # can be downloaded from here: 
     # Load the dataset
     data = pd.read_csv(file_path)
-    data = shuffle(data, random_state=42) 
+    data = shuffle(data) 
 
     data = data[:int(len(data)*percentage)] # select the number of samples you want to use
 
@@ -31,29 +31,17 @@ def preprocessing(percentage, kfold, corr_threshold=0.1, model='svm'):
     X = data.drop(columns=[target])
     y = data[target]
 
-    sex_column = X['Sex']
-
     # Compute correlations with the target
-    if model == 'svm':
-        correlations = X.corrwith(y)
-        selected_features = correlations[correlations.abs() >= corr_threshold].index.tolist()
-        print(f"Selected Features based on correlation threshold ({corr_threshold}): {selected_features}")
-        
+   
     numerical_columns = ['BMI', 'MentHlth', 'PhysHlth', 'Age', 'Income' , 'Education', 'GenHlth' ] 
     existing_num_cols = []
     
     for feature in numerical_columns:
         if feature in numerical_columns :
             existing_num_cols.append(feature)
-    # Normalize numerical features using Min-Max Scaling
-    if model == 'svm':
-        scaler = StandardScaler()
-        X[existing_num_cols] = scaler.fit_transform(X[existing_num_cols])
-        X = X[selected_features]
-        X['Sex'] = sex_column
-    else:
-        scaler = MinMaxScaler()
-        X[existing_num_cols] = scaler.fit_transform(X[existing_num_cols])
+
+    scaler = MinMaxScaler()
+    X[existing_num_cols] = scaler.fit_transform(X[existing_num_cols])
 
     def balance_classes(X, y):
         # count samples
@@ -395,14 +383,14 @@ def evaluate_model(y_true, y_pred):
     return test_acc, test_recall, test_precision, test_f1
 
 def train_svm_model():
-    X, y = preprocessing(percentage=0.05, kfold=True, corr_threshold=0.1, model='svm')
+    X, y = preprocessing(percentage=0.001, kfold=True, corr_threshold=0.1, model='svm')
     X = np.asarray(X, dtype=float)
     y = np.asarray(y, dtype=int)
 
     hyperparams = [
         # {'learning_rate': 0.0001, 'lambda_param': 0.001, 'n_iters': 150},
         {'learning_rate': 0.0001, 'lambda_param': 0.005, 'n_iters': 201},
-        # {'learning_rate': 0.01, 'lambda_param': 0.01, 'n_iters': 150},
+        # {'learning_rate': 0.01, 'lambda_para m': 0.01, 'n_iters': 150},
         # {'learning_rate': 0.1, 'lambda_param': 0.1, 'n_iters': 150},
     ]
  
@@ -479,5 +467,5 @@ def train_svm_model():
         pickle.dump(best_model, f)
 
 # COMMENT THIS OUT WHEN YOU RUN OTHER MODELS
-train_svm_model()
+# train_svm_model()
 
