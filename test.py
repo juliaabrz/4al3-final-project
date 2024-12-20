@@ -4,7 +4,7 @@ from sklearn.metrics import accuracy_score, recall_score, f1_score, precision_sc
 import torch
 from training import diabetes_neural_network, SVM
 import pandas as pd
- 
+
 def evaluate_model(y_true, y_pred):
     y_true_binary = np.where(y_true == -1, 0, 1)
     y_pred_binary = np.where(y_pred == -1, 0, 1)
@@ -22,7 +22,7 @@ def evaluate_model(y_true, y_pred):
 def compute_bias(model, X_test_tensor, y_test_tensor, X_test, feature_columns):
     X_test_df = pd.DataFrame(X_test, columns=feature_columns)
     sex_data_tensor = torch.tensor(X_test_df['Sex'].values, dtype=torch.float32)
-    
+
     # getting predictions from the model
     model.eval()  # setting model to evaluation mode
     with torch.no_grad():
@@ -74,6 +74,12 @@ def evaluating_nn(model, X_test_tensor, y_test_tensor, X_test, feature_columns) 
     # call the function that computes the bias
     compute_bias(model, X_test_tensor, y_test_tensor, X_test, feature_columns)
 
+# Helper function for correlation-based feature selection
+def apply_correlation_filter(X, y, corr_threshold=0.1):
+    correlations = X.corrwith(y)
+    selected_features = correlations[correlations.abs() >= corr_threshold].index.tolist()
+    selected_features.append('Sex')
+    return selected_features
  
 def main():
     # GETTING THE FEATUREA-which will later be used for the bias computation
@@ -98,7 +104,7 @@ def main():
  
     y_test_converted = np.where(y_test <= 0, -1, 1)
     y_pred = svm_model.predict(X_test)
-    evaluate_model(y_test_converted, y_pred)
+    # evaluate_model(y_test_converted, y_pred)
  
     # testing neural network
     X_test_tensor = torch.tensor(X_test, dtype=torch.float32)
