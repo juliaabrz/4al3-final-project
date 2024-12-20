@@ -31,6 +31,12 @@ def preprocessing(percentage, kfold, corr_threshold=0.1, model='svm'):
     X = data.drop(columns=[target])
     y = data[target]
 
+    # Compute correlations with the target
+    if model == 'svm':
+        correlations = X.corrwith(y)
+        selected_features = correlations[correlations.abs() >= corr_threshold].index.tolist()
+        print(f"Selected Features based on correlation threshold ({corr_threshold}): {selected_features}")
+        
     numerical_columns = ['BMI', 'MentHlth', 'PhysHlth', 'Age', 'Income' , 'Education', 'GenHlth' ] 
     existing_num_cols = []
     
@@ -38,11 +44,14 @@ def preprocessing(percentage, kfold, corr_threshold=0.1, model='svm'):
         if feature in numerical_columns :
             existing_num_cols.append(feature)
     # Normalize numerical features using Min-Max Scaling
-    scaler = MinMaxScaler()
-    X[existing_num_cols] = scaler.fit_transform(X[existing_num_cols])
-
-    # X = data.drop(columns=['Income'])
-
+    if model == 'svm':
+        scaler = StandardScaler()
+        X[existing_num_cols] = scaler.fit_transform(X[existing_num_cols])
+        X = X[selected_features]
+    else:
+        scaler = MinMaxScaler()
+        X[existing_num_cols] = scaler.fit_transform(X[existing_num_cols])
+  
     def balance_classes(X, y):
         # count samples
         class_counts = y.value_counts()
