@@ -31,6 +31,7 @@ def preprocessing(percentage, kfold, corr_threshold=0.1, model='svm'):
     X = data.drop(columns=[target])
     y = data[target]
 
+    sex_column = X['Sex']
     # Compute correlations with the target
    
     numerical_columns = ['BMI', 'MentHlth', 'PhysHlth', 'Age', 'Income' , 'Education', 'GenHlth' ] 
@@ -39,10 +40,32 @@ def preprocessing(percentage, kfold, corr_threshold=0.1, model='svm'):
     for feature in numerical_columns:
         if feature in numerical_columns :
             existing_num_cols.append(feature)
+    
+    # this is being used with numpy files
+    # Compute correlations with the target
+    if model == 'svm':
+        correlations = X.corrwith(y)
+        selected_features = correlations[correlations.abs() >= corr_threshold].index.tolist()
+        print(f"Selected Features based on correlation threshold ({corr_threshold}): {selected_features}")
+        
+    numerical_columns = ['BMI', 'MentHlth', 'PhysHlth', 'Age', 'Income' , 'Education', 'GenHlth' ] 
+    existing_num_cols = []
+    
+    for feature in numerical_columns:
+        if feature in numerical_columns :
+            existing_num_cols.append(feature)
 
-    scaler = MinMaxScaler()
-    X[existing_num_cols] = scaler.fit_transform(X[existing_num_cols])
+    # Normalize numerical features
+    if model == 'svm':
+        scaler = StandardScaler()
+        X[existing_num_cols] = scaler.fit_transform(X[existing_num_cols])
+        X = X[selected_features]
+        X['Sex'] = sex_column
+    else:
+        scaler = MinMaxScaler()
+        X[existing_num_cols] = scaler.fit_transform(X[existing_num_cols])
 
+    # Balance the classes
     def balance_classes(X, y):
         # count samples
         class_counts = y.value_counts()
@@ -383,7 +406,7 @@ def evaluate_model(y_true, y_pred):
     return test_acc, test_recall, test_precision, test_f1
 
 def train_svm_model():
-    X, y = preprocessing(percentage=0.001, kfold=True, corr_threshold=0.1, model='svm')
+    X, y = preprocessing(percentage=0.05, kfold=True, corr_threshold=0.1, model='svm')
     X = np.asarray(X, dtype=float)
     y = np.asarray(y, dtype=int)
 

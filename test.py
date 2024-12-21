@@ -5,7 +5,7 @@ import torch
 from training import diabetes_neural_network, SVM
 import pandas as pd
 
-def evaluate_model(y_true, y_pred):
+def evaluate_model(y_true, y_pred, model=None, X_test=None, sex_data=None):
     y_true_binary = np.where(y_true == -1, 0, 1)
     y_pred_binary = np.where(y_pred == -1, 0, 1)
     accuracy = accuracy_score(y_true_binary, y_pred_binary)
@@ -17,6 +17,46 @@ def evaluate_model(y_true, y_pred):
     print(f"Recall: {recall*100:.1f}%")
     print(f"Precision: {precision*100:.1f}%")
     print(f"F1 score: {f1*100:.1f}%")
+    # if model is not None and X_test is not None and sex_data is not None:
+    compute_bias_svm(model, X_test, y_true_binary, sex_data)
+
+
+
+def compute_bias_svm(model, X_test, y_test, sex_data):
+
+    # 1. Get model predictions for test set
+    y_pred = model.predict(X_test)  # y_pred will be {-1,1}, we need to convert to {0,1}
+    
+    # Convert predictions from {-1,1} to {0,1} to match y_test format
+    y_pred_binary = np.where(y_pred == 1, 1, 0)
+
+    # 2. Create masks for the subgroups: male and female
+    male_mask = (sex_data == 1)
+    female_mask = (sex_data == 0)
+
+    # 3. Compute confusion matrices for each subgroup
+    # Subgroup: Male
+    y_true_male = y_test[male_mask]
+    y_pred_male = y_pred_binary[male_mask]
+    tn_m, fp_m, fn_m, tp_m = confusion_matrix(y_true_male, y_pred_male).ravel()
+
+    # Subgroup: Female
+    y_true_female = y_test[female_mask]
+    y_pred_female = y_pred_binary[female_mask]
+    tn_f, fp_f, fn_f, tp_f = confusion_matrix(y_true_female, y_pred_female).ravel()
+
+    # 4. Compute TPR/FPR for each subgroup
+    # TPR = TP/(TP+FN), FPR = FP/(FP+TN)
+    male_tpr = tp_m / (tp_m + fn_m) if (tp_m + fn_m) > 0 else 0
+    male_fpr = fp_m / (fp_m + tn_m) if (fp_m + tn_m) > 0 else 0
+
+    female_tpr = tp_f / (tp_f + fn_f) if (tp_f + fn_f) > 0 else 0
+    female_fpr = fp_f / (fp_f + tn_f) if (fp_f + tn_f) > 0 else 0
+
+    # 5. Print the results
+    print("Evaluating bias for SVM model...")
+    print(f"Male TPR: {male_tpr:.4f}, Male FPR: {male_fpr:.4f}")
+    print(f"Female TPR: {female_tpr:.4f}, Female FPR: {female_fpr:.4f}")
 
 # function to compute male and female bias
 def compute_bias(model, X_test_tensor, y_test_tensor, X_test, feature_columns):
@@ -92,6 +132,7 @@ def main():
     # Separate target and features
     target = 'Diabetes_binary'
     X = data.drop(columns=[target])
+    y = data[target]
     feature_columns = X.columns.tolist()
 
     # Load model
@@ -101,11 +142,29 @@ def main():
     # Load test data
     X_test = np.load("X_test.npy")
     y_test = np.load("y_test.npy")
- 
+    
+    # process test data so that it can be used for evaluation with the SVM model
+    trained_features = list(svm_model.w.shape)[0]  # Number of features in the trained model
+    full_feature_columns = X.columns.tolist()
+
+    if trained_features != len(full_feature_columns):
+        feature_columns_svm = full_feature_columns[:trained_features]
+    else:
+        feature_columns_svm = full_feature_columns
+
+    # Prepare aligned test data for SVM
+    df_test_svm = pd.DataFrame(X_test, columns=full_feature_columns)
+    X_test_svm = df_test_svm[feature_columns_svm].to_numpy()
+    
+    # finding column with sex data 
+    sex_column_index = feature_columns.index('Sex')
+    sex_data = X_test[:, sex_column_index]
+
+    # Evaludation
     y_test_converted = np.where(y_test <= 0, -1, 1)
-    y_pred = svm_model.predict(X_test)
-    # evaluate_model(y_test_converted, y_pred)
- 
+    y_pred_svm = svm_model.predict(X_test_svm)
+    evaluate_model(y_test_converted, y_pred_svm, model=svm_model, X_test=X_test_svm, sex_data=sex_data)
+
     # testing neural network
     X_test_tensor = torch.tensor(X_test, dtype=torch.float32)
     y_test_tensor = torch.tensor(y_test, dtype=torch.float32).unsqueeze(1)#adding a dimension to the tensor to make it compatible with the model
