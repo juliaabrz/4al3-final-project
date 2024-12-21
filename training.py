@@ -450,7 +450,7 @@ def train_svm_model():
     print(best_params)
     print(f"Best Average Validation F1 Score: {best_f1*100:.2f}%\n")
 
-    X_train_full, X_test, y_train_full, y_test = preprocessing(percentage=0.001, kfold=False, corr_threshold=0.1, model='svm')
+    X_train_full, X_test, y_train_full, y_test = preprocessing(percentage=0.05, kfold=False, corr_threshold=0.1, model='svm')
     sex_data = X_test['Sex'].values # can be changed to check the bias from a particular column
     X_train_full = np.asarray(X_train_full, dtype=float)
     y_train_full = np.asarray(y_train_full, dtype=int)
