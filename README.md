@@ -10,7 +10,7 @@ The objective of this project is to utilize [CDC Diabetes Health Indicators](htt
 - **Healthy**
 
 ### Approach
-1. Multiple machine learning models will be implemented and evaluated.
+1. Multiple machine learning models will be implemented and evaluated based on accuracy. We chose K-Nearest Neighbours, Neural Network, and SVM.
 2. Results from the models will be thoroughly analyzed.
 3. The goal is to identify the **most efficient model** for predicting health status.
 
@@ -26,7 +26,7 @@ The objective of this project is to utilize [CDC Diabetes Health Indicators](htt
 ### Tools and Technologies
 This project leverages:
 - Python (for data manipulation and modeling)
-- Machine learning libraries (TBD)
+- Machine learning libraries (SKLearn)
 - Visualization tools (e.g., Matplotlib)
 
 ---
